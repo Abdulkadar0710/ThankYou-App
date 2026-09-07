@@ -60,12 +60,18 @@ function Extension() {
 
   const currentAmount = Math.max(0, Number(subtotal?.amount) || 0);
   const shippingAmount = Number(totalShipping?.amount);
-  const threshold = shippingAmount;
+  const threshold = Number(2000); 
 
   if (!Number.isFinite(threshold) || threshold < 0) return null;
 
   const currencyCode = totalShipping?.currencyCode || subtotal?.currencyCode || '';
   const remaining = Math.max(0, threshold - currentAmount);
+
+  // Hide the free shipping block if free shipping is unlocked but the buyer selects a shipping option with extra cost (e.g., Standard $9.67)
+  if (remaining <= 0 && Number.isFinite(shippingAmount) && shippingAmount > 0) {
+    return null;
+  }
+
   const progress =
     threshold > 0
       ? Math.max(0, Math.min(100, (currentAmount / threshold) * 100))
