@@ -55,9 +55,9 @@ const BUILD_APP_URL =
   '';
 
 const FALLBACK_APP_URLS = [
-  'https://thank-you-app-production-e567.up.railway.app',
-  'https://thank-you-app-production-e567.up.railway.app',
+  'https://thankyou-app-production.up.railway.app',
 ];
+
 
 const DEFAULT_APP_URL = BUILD_APP_URL || FALLBACK_APP_URLS[0];
 
