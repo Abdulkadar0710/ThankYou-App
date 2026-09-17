@@ -6,6 +6,23 @@ const RECOMMENDATION_METAFIELD = {
   key: 'recommended_products',
 };
 
+const PRODUCT_FIELDS_FRAGMENT = `
+  id
+  title
+  handle
+  onlineStoreUrl
+  featuredImage {
+    url
+  }
+  variants(first: 10) {
+    nodes {
+      id
+      title
+      price
+    }
+  }
+`;
+
 export async function action({request}) {
   try {
     if (request.method === 'OPTIONS') {
@@ -128,18 +145,32 @@ export async function action({request}) {
         }
 
         if (!recommendedProducts.has(product.id)) {
-          recommendedProducts.set(product.id, {
-            id: product.id,
-            title: product.title,
-            handle: product.handle,
-            url:
-              product.onlineStoreUrl ||
-              buildProductUrl(storefrontUrl, product.handle),
-            image: product.featuredImage?.url || '',
-          });
+          const formatted = formatProduct(product, storefrontUrl);
+          if (formatted) {
+            recommendedProducts.set(product.id, formatted);
+          }
         }
       }
     }
+
+    // Fallback: If no metafield recommendations were set up, load active store products
+    if (recommendedProducts.size === 0) {
+      const fallbackProducts = await fetchFallbackProducts(admin);
+      for (const product of fallbackProducts) {
+        if (purchasedProductIds.has(product.id) || recommendedProducts.has(product.id)) {
+          continue;
+        }
+        const formatted = formatProduct(product, storefrontUrl);
+        if (formatted) {
+          recommendedProducts.set(product.id, formatted);
+        }
+      }
+    }
+
+    const finalProductsList = Array.from(recommendedProducts.values()).slice(0, 8);
+
+    // Ensure every single recommended product has populated variant IDs
+    await ensureProductVariants(admin, finalProductsList);
 
     return responseJson({
       success: true,
@@ -150,10 +181,10 @@ export async function action({request}) {
       sourceProducts: purchasedProducts.map((product) => ({
         ...productSummary(product),
       })),
-      products: Array.from(recommendedProducts.values()).slice(0, 8),
+      products: finalProductsList,
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error in recommendations action:', error);
     const message =
       error instanceof Error ? error.message : 'Unexpected recommendation error';
 
@@ -166,60 +197,45 @@ export async function action({request}) {
 
 async function fetchOrderById(admin, adminOrderId) {
   const orderResponse = await admin.graphql(
-      `
-        query GetOrder($id: ID!) {
-          order(id: $id) {
-            id
-            name
+    `
+      query GetOrder($id: ID!) {
+        order(id: $id) {
+          id
+          name
 
-            lineItems(first: 50) {
-              nodes {
-                title
+          lineItems(first: 50) {
+            nodes {
+              title
 
-                variant {
-                  product {
-                    id
-                    title
-                    handle
-                    tags
+              variant {
+                product {
+                  id
+                  title
+                  handle
+                  tags
 
-                    collections(first: 50) {
-                      nodes {
-                        id
-                        title
-                        handle
+                  collections(first: 50) {
+                    nodes {
+                      id
+                      title
+                      handle
+                    }
+                  }
+
+                  metafield(
+                    namespace: "${RECOMMENDATION_METAFIELD.namespace}"
+                    key: "${RECOMMENDATION_METAFIELD.key}"
+                  ) {
+                    reference {
+                      ... on Product {
+                        ${PRODUCT_FIELDS_FRAGMENT}
                       }
                     }
 
-                    metafield(
-                      namespace: "${RECOMMENDATION_METAFIELD.namespace}"
-                      key: "${RECOMMENDATION_METAFIELD.key}"
-                    ) {
-                      reference {
+                    references(first: 10) {
+                      nodes {
                         ... on Product {
-                          id
-                          title
-                          handle
-                          onlineStoreUrl
-
-                          featuredImage {
-                            url
-                          }
-                        }
-                      }
-
-                      references(first: 10) {
-                        nodes {
-                          ... on Product {
-                            id
-                            title
-                            handle
-                            onlineStoreUrl
-
-                            featuredImage {
-                              url
-                            }
-                          }
+                          ${PRODUCT_FIELDS_FRAGMENT}
                         }
                       }
                     }
@@ -229,13 +245,14 @@ async function fetchOrderById(admin, adminOrderId) {
             }
           }
         }
-      `,
-      {
-        variables: {
-          id: adminOrderId,
-        },
+      }
+    `,
+    {
+      variables: {
+        id: adminOrderId,
       },
-    );
+    },
+  );
 
   return orderResponse.json();
 }
@@ -274,28 +291,14 @@ async function fetchOrderByQuery(admin, query) {
                     ) {
                       reference {
                         ... on Product {
-                          id
-                          title
-                          handle
-                          onlineStoreUrl
-
-                          featuredImage {
-                            url
-                          }
+                          ${PRODUCT_FIELDS_FRAGMENT}
                         }
                       }
 
                       references(first: 10) {
                         nodes {
                           ... on Product {
-                            id
-                            title
-                            handle
-                            onlineStoreUrl
-
-                            featuredImage {
-                              url
-                            }
+                            ${PRODUCT_FIELDS_FRAGMENT}
                           }
                         }
                       }
@@ -316,6 +319,129 @@ async function fetchOrderByQuery(admin, query) {
   );
 
   return orderResponse.json();
+}
+
+async function fetchFallbackProducts(admin) {
+  try {
+    const response = await admin.graphql(`
+      query FallbackProducts {
+        products(first: 6, query: "status:active") {
+          nodes {
+            ${PRODUCT_FIELDS_FRAGMENT}
+          }
+        }
+      }
+    `);
+    const data = await response.json();
+    return data?.data?.products?.nodes || [];
+  } catch (err) {
+    console.error('Failed to fetch fallback products:', err);
+    return [];
+  }
+}
+
+async function ensureProductVariants(admin, products) {
+  const missingVariantProducts = products.filter(
+    (p) => !p.variantId && (!p.variants || !p.variants.length),
+  );
+
+  if (!missingVariantProducts.length) return;
+
+  const productIds = missingVariantProducts.map((p) => p.id);
+
+  try {
+    const response = await admin.graphql(
+      `
+        query GetVariantsForProducts($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on Product {
+              id
+              variants(first: 10) {
+                nodes {
+                  id
+                  title
+                  price
+                }
+              }
+            }
+          }
+        }
+      `,
+      {variables: {ids: productIds}},
+    );
+
+    const data = await response.json();
+    const nodes = data?.data?.nodes || [];
+
+    for (const node of nodes) {
+      if (!node?.id) continue;
+
+      const target = products.find((p) => p.id === node.id);
+      if (target) {
+        const rawVariants = node.variants?.nodes || [];
+        target.variants = rawVariants.map((v) => ({
+          id: v.id,
+          title: v.title || 'Default',
+          price: formatMoney(v.price),
+        }));
+        target.variantId = target.variants[0]?.id || '';
+        if (!target.price && target.variants[0]?.price) {
+          target.price = target.variants[0].price;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to resolve missing product variants:', err);
+  }
+}
+
+function formatProduct(product, storefrontUrl) {
+  if (!product?.id) return null;
+
+  const rawVariants = Array.isArray(product.variants)
+    ? product.variants
+    : Array.isArray(product.variants?.nodes)
+    ? product.variants.nodes
+    : [];
+
+  const variants = rawVariants
+    .filter((v) => v && (v.id || typeof v === 'string'))
+    .map((v) => {
+      const id = typeof v === 'string' ? v : v.id;
+      const title = typeof v === 'object' && v.title ? v.title : 'Default';
+      const price = typeof v === 'object' ? formatMoney(v.price) : '';
+      return {id, title, price};
+    });
+
+  const defaultVariantId =
+    product.variantId ||
+    variants[0]?.id ||
+    (typeof product.id === 'string' && product.id.includes('ProductVariant')
+      ? product.id
+      : '');
+
+  const price = variants[0]?.price || formatMoney(product.price) || '';
+
+  return {
+    id: product.id,
+    title: product.title,
+    handle: product.handle,
+    url:
+      product.onlineStoreUrl ||
+      buildProductUrl(storefrontUrl, product.handle),
+    image: product.featuredImage?.url || product.image || '',
+    variantId: defaultVariantId,
+    price,
+    variants,
+  };
+}
+
+function formatMoney(priceObj) {
+  if (!priceObj) return '';
+  if (typeof priceObj === 'string') return priceObj.startsWith('$') ? priceObj : `$${priceObj}`;
+  const amount = priceObj.amount || priceObj.shopMoney?.amount;
+  if (amount) return `$${parseFloat(amount).toFixed(2)}`;
+  return '';
 }
 
 function normalizeOrderId(orderId) {
