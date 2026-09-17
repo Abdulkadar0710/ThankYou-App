@@ -232,8 +232,6 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
         quantity: 1,
       });
 
-      console.log("response: ", response);
-
       if (response?.success) {
         setAdded(true);
         setStatusTone('success');
