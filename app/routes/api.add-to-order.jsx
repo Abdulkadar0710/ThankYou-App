@@ -18,16 +18,16 @@ export async function action({request}) {
       });
     }
 
-    if (!orderId) {
+    if (!orderId && !body.checkoutToken && !body.orderNumber) {
       return responseJson({
         success: false,
-        message: 'Order ID is required to add item to order',
+        message: 'Order details required to add item to order',
       });
     }
 
     const {admin} = await unauthenticated.admin(shop);
 
-    // Resolve variant ID automatically if variantId is missing or points to a Product
+    // Step 0: Resolve variant ID automatically if variantId is missing or points to a Product
     const resolvedVariantId = await resolveVariantId(admin, body);
 
     if (!resolvedVariantId) {
@@ -37,12 +37,27 @@ export async function action({request}) {
       });
     }
 
-    const normalizedOrderId = normalizeGid(orderId, 'Order');
-    const normalizedVariantId = normalizeGid(resolvedVariantId, 'ProductVariant');
+    let normalizedOrderId = normalizeOrderId(orderId);
+    const normalizedVariantId = normalizeVariantId(resolvedVariantId);
     const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
 
+    // If orderId is missing or couldn't be normalized, lookup order by checkout token or order number
+    if (!normalizedOrderId && (body.checkoutToken || body.orderNumber)) {
+      const foundOrder = await findOrderByQuery(admin, body.checkoutToken, body.orderNumber);
+      if (foundOrder?.id) {
+        normalizedOrderId = foundOrder.id;
+      }
+    }
+
+    if (!normalizedOrderId) {
+      return responseJson({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
     // Step 1: Begin order edit session
-    const beginData = await graphqlJson(
+    let beginData = await graphqlJson(
       admin,
       `
         mutation OrderEditBegin($id: ID!) {
@@ -60,8 +75,35 @@ export async function action({request}) {
       {id: normalizedOrderId},
     );
 
-    const beginErrors = beginData?.data?.orderEditBegin?.userErrors || [];
-    const calculatedOrderId = beginData?.data?.orderEditBegin?.calculatedOrder?.id;
+    let beginErrors = beginData?.data?.orderEditBegin?.userErrors || [];
+    let calculatedOrderId = beginData?.data?.orderEditBegin?.calculatedOrder?.id;
+
+    // Fallback order resolution if direct orderId failed
+    if ((!calculatedOrderId || beginErrors.length || beginData?.errors?.length) && (body.checkoutToken || body.orderNumber)) {
+      const fallbackOrder = await findOrderByQuery(admin, body.checkoutToken, body.orderNumber);
+      if (fallbackOrder?.id && fallbackOrder.id !== normalizedOrderId) {
+        normalizedOrderId = fallbackOrder.id;
+        beginData = await graphqlJson(
+          admin,
+          `
+            mutation OrderEditBegin($id: ID!) {
+              orderEditBegin(id: $id) {
+                calculatedOrder {
+                  id
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `,
+          {id: normalizedOrderId},
+        );
+        beginErrors = beginData?.data?.orderEditBegin?.userErrors || [];
+        calculatedOrderId = beginData?.data?.orderEditBegin?.calculatedOrder?.id;
+      }
+    }
 
     if (beginData?.errors?.length) {
       return responseJson({
@@ -188,6 +230,57 @@ export async function loader() {
   return responseJson({});
 }
 
+async function findOrderByQuery(admin, checkoutToken, orderNumber) {
+  if (checkoutToken) {
+    try {
+      const data = await graphqlJson(
+        admin,
+        `
+          query FindOrderByCheckoutToken($query: String!) {
+            orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
+              nodes {
+                id
+              }
+            }
+          }
+        `,
+        {query: `checkout_token:${checkoutToken}`},
+      );
+      const node = data?.data?.orders?.nodes?.[0];
+      if (node?.id) return node;
+    } catch (err) {
+      console.error('Failed to query order by checkout token:', err);
+    }
+  }
+
+  if (orderNumber) {
+    try {
+      const q = String(orderNumber).startsWith('#')
+        ? `name:${orderNumber}`
+        : `name:#${orderNumber}`;
+      const data = await graphqlJson(
+        admin,
+        `
+          query FindOrderByOrderNumber($query: String!) {
+            orders(first: 1, query: $query, sortKey: CREATED_AT, reverse: true) {
+              nodes {
+                id
+              }
+            }
+          }
+        `,
+        {query: q},
+      );
+      const node = data?.data?.orders?.nodes?.[0];
+      if (node?.id) return node;
+    } catch (err) {
+      console.error('Failed to query order by order number:', err);
+    }
+  }
+
+  return null;
+}
+
 async function resolveVariantId(admin, body) {
   const {variantId, productId, itemId} = body;
   const candidate = variantId || productId || itemId || '';
@@ -198,13 +291,11 @@ async function resolveVariantId(admin, body) {
 
   // If candidate is already a ProductVariant GID, return it directly
   if (candidateStr.includes('/ProductVariant/')) {
-    return candidateStr;
+    return normalizeVariantId(candidateStr);
   }
 
   // If candidate is a Product GID or numeric ID, query Shopify for the product's first variant
-  const productGid = candidateStr.includes('/Product/')
-    ? candidateStr
-    : normalizeGid(candidateStr, 'Product');
+  const productGid = normalizeGid(candidateStr, 'Product');
 
   try {
     const data = await graphqlJson(
@@ -233,7 +324,7 @@ async function resolveVariantId(admin, body) {
   }
 
   // Fallback: Return formatted GID
-  return normalizeGid(candidateStr, 'ProductVariant');
+  return normalizeVariantId(candidateStr);
 }
 
 async function graphqlJson(admin, query, variables) {
@@ -266,24 +357,66 @@ function normalizeShop(value) {
   }
 }
 
+function normalizeOrderId(orderId) {
+  const value = String(orderId || '').trim();
+  if (!value) return '';
+
+  if (/^\d+$/.test(value)) {
+    return `gid://shopify/Order/${value}`;
+  }
+
+  const clean = value.replace('gid://shopify/OrderIdentity/', 'gid://shopify/Order/');
+  if (clean.startsWith('gid://shopify/Order/')) {
+    return clean;
+  }
+
+  const matches = clean.match(/\/(\d+)$/);
+  if (matches) {
+    return `gid://shopify/Order/${matches[1]}`;
+  }
+
+  return clean.startsWith('gid://shopify/') ? clean : `gid://shopify/Order/${clean}`;
+}
+
+function normalizeVariantId(variantId) {
+  const value = String(variantId || '').trim();
+  if (!value) return '';
+
+  if (/^\d+$/.test(value)) {
+    return `gid://shopify/ProductVariant/${value}`;
+  }
+
+  if (value.startsWith('gid://shopify/ProductVariant/')) {
+    return value;
+  }
+
+  const matches = value.match(/\/(\d+)$/);
+  if (matches) {
+    return `gid://shopify/ProductVariant/${matches[1]}`;
+  }
+
+  return value;
+}
+
 function normalizeGid(id, type) {
   const value = String(id || '').trim();
   if (!value) return '';
-
-  if (value.startsWith('gid://shopify/')) {
-    return value;
-  }
 
   if (/^\d+$/.test(value)) {
     return `gid://shopify/${type}/${value}`;
   }
 
-  const matches = value.match(/\/(\d+)$/);
+  const clean = value.replace('gid://shopify/OrderIdentity/', 'gid://shopify/Order/');
+  if (clean.startsWith(`gid://shopify/${type}/`)) {
+    return clean;
+  }
+
+  const matches = clean.match(/\/(\d+)$/);
   if (matches) {
     return `gid://shopify/${type}/${matches[1]}`;
   }
 
-  return value;
+  return clean;
 }
 
 function graphQLErrorMessage(data) {
