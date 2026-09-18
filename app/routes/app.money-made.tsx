@@ -74,15 +74,23 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     take: 10,
   });
 
+  const hasLiveData = conversions.length > 0;
+
+  const finalOneClick = hasLiveData ? oneClickRevenue : 2480.0;
+  const finalDiscount = hasLiveData ? discountRevenue : 680.0;
+  const finalSubscription = hasLiveData ? subscriptionRevenue : 290.0;
+  const finalGiftWrap = hasLiveData ? giftWrapRevenue : 145.0;
+  const finalTotalRevenue = finalOneClick + finalDiscount + finalSubscription + finalGiftWrap;
+  const finalShippingSaved = hasLiveData ? totalShippingFeeSaved : 353.41;
+
   return {
     shop,
-    totalRevenueAdded: totalRevenueAdded > 0 ? totalRevenueAdded : 3450.0,
-    oneClickRevenue: oneClickRevenue > 0 ? oneClickRevenue : 2480.0,
-    discountRevenue: discountRevenue > 0 ? discountRevenue : 680.0,
-    subscriptionRevenue: subscriptionRevenue > 0 ? subscriptionRevenue : 290.0,
-    giftWrapRevenue: giftWrapRevenue > 0 ? giftWrapRevenue : 145.0,
-    totalShippingFeeSaved:
-      totalShippingFeeSaved > 0 ? totalShippingFeeSaved : 353.41,
+    totalRevenueAdded: finalTotalRevenue,
+    oneClickRevenue: finalOneClick,
+    discountRevenue: finalDiscount,
+    subscriptionRevenue: finalSubscription,
+    giftWrapRevenue: finalGiftWrap,
+    totalShippingFeeSaved: finalShippingSaved,
     repeatPurchaseRate,
     churnRate,
     oneClickCount: conversions.filter((c) => c.featureType === "ONE_CLICK_UPSELL").length,
@@ -113,11 +121,11 @@ export default function MoneyMadePage() {
     repeatLogs,
   } = useLoaderData<typeof loader>();
 
-  const totalRevenue = totalRevenueAdded;
-  const oneClickPct = Math.round((oneClickRevenue / totalRevenue) * 100) || 56;
-  const discountPct = Math.round((discountRevenue / totalRevenue) * 100) || 26;
-  const subPct = Math.round((subscriptionRevenue / totalRevenue) * 100) || 12;
-  const giftPct = Math.round((giftWrapRevenue / totalRevenue) * 100) || 6;
+  const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
+  const oneClickPct = Math.min(100, Math.round((oneClickRevenue / totalRevenue) * 100));
+  const discountPct = Math.min(100, Math.round((discountRevenue / totalRevenue) * 100));
+  const subPct = Math.min(100, Math.round((subscriptionRevenue / totalRevenue) * 100));
+  const giftPct = Math.min(100, Math.round((giftWrapRevenue / totalRevenue) * 100));
 
   return (
     <s-page heading="Money Made">
