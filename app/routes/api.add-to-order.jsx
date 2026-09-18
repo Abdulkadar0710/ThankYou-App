@@ -131,6 +131,19 @@ export async function action({request}) {
             calculatedLineItem {
               id
               quantity
+              title
+              discountedUnitPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              originalUnitPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
             }
             userErrors {
               field
@@ -210,8 +223,19 @@ export async function action({request}) {
     const updatedOrder = commitData?.data?.orderEditCommit?.order;
 
     try {
-      const addedAmount =
-        parseFloat(body.price || body.amount || '0') || 12.0;
+      const addedLineItem = addData?.data?.orderEditAddVariant?.calculatedLineItem;
+      const shopifyUnitPrice = parseFloat(
+        addedLineItem?.discountedUnitPriceSet?.shopMoney?.amount ||
+        addedLineItem?.originalUnitPriceSet?.shopMoney?.amount ||
+        '0'
+      );
+
+      const rawPrice = body.price || body.amount || '';
+      const clientUnitPrice = parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 0;
+
+      const unitPrice = shopifyUnitPrice > 0 ? shopifyUnitPrice : clientUnitPrice;
+      const addedAmount = unitPrice * parsedQuantity;
+      const itemTitle = addedLineItem?.title || body.itemTitle || body.title || '1-Click Upsell Item';
 
       await prisma.upsellConversion.create({
         data: {
@@ -219,7 +243,7 @@ export async function action({request}) {
           orderId: normalizedOrderId,
           orderNumber: updatedOrder?.name || body.orderNumber || null,
           featureType: 'ONE_CLICK_UPSELL',
-          itemTitle: body.itemTitle || body.title || '1-Click Upsell Item',
+          itemTitle,
           variantId: normalizedVariantId,
           quantity: parsedQuantity,
           amount: addedAmount,

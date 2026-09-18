@@ -230,6 +230,8 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
         variantId: variantToAdd,
         productId: product.id,
         quantity: 1,
+        price: displayPrice,
+        itemTitle: product.title,
       });
 
       if (response?.success) {
