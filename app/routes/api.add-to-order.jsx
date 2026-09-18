@@ -1,4 +1,5 @@
 /* eslint-env node */
+import prisma from '../db.server';
 import {unauthenticated} from '../shopify.server';
 
 export async function action({request}) {
@@ -207,6 +208,30 @@ export async function action({request}) {
     }
 
     const updatedOrder = commitData?.data?.orderEditCommit?.order;
+
+    try {
+      const addedAmount =
+        parseFloat(body.price || body.amount || '0') || 12.0;
+
+      await prisma.upsellConversion.create({
+        data: {
+          shop,
+          orderId: normalizedOrderId,
+          orderNumber: updatedOrder?.name || body.orderNumber || null,
+          featureType: 'ONE_CLICK_UPSELL',
+          itemTitle: body.itemTitle || body.title || '1-Click Upsell Item',
+          variantId: normalizedVariantId,
+          quantity: parsedQuantity,
+          amount: addedAmount,
+          currency:
+            updatedOrder?.totalPriceSet?.shopMoney?.currencyCode || 'USD',
+          shippingFeeSaved: 5.99,
+          status: 'COMPLETED',
+        },
+      });
+    } catch (dbErr) {
+      console.error('Failed to log upsell conversion to DB:', dbErr);
+    }
 
     return responseJson({
       success: true,

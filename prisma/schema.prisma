@@ -60,3 +60,76 @@ model ThankYouBlock {
   @@index([shop, type, status])
   @@index([shop, updatedAt])
 }
+
+model UpsellConversion {
+  id                 String   @id @default(cuid())
+  shop               String
+  orderId            String
+  orderNumber        String?
+  customerId         String?
+  customerEmail      String?
+  featureType        String   // ONE_CLICK_UPSELL | DISCOUNT_CODE | SUBSCRIPTION | GIFT_WRAP | REFERRAL
+  itemTitle          String   @db.Text
+  variantId          String?
+  quantity           Int      @default(1)
+  amount             Float    @default(0.0)
+  currency           String   @default("USD")
+  shippingFeeSaved   Float    @default(0.0)
+  discountCode       String?
+  isRepeatPurchase   Boolean  @default(false)
+  firstOrderId       String?
+  returnIntervalDays Int?
+  status             String   @default("COMPLETED")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([shop, featureType, createdAt])
+  @@index([shop, customerId])
+  @@index([orderId])
+  @@index([discountCode])
+}
+
+model CustomerRetentionLog {
+  id                   String    @id @default(cuid())
+  shop                 String
+  customerId           String
+  customerEmail        String?
+  initialOrderId       String
+  initialOrderDate     DateTime  @default(now())
+  lastPurchaseDate     DateTime  @default(now())
+  totalOrdersCount     Int       @default(1)
+  totalLifetimeValue   Float     @default(0.0)
+  discountCodeIssued   String?
+  discountCodeRedeemed Boolean   @default(false)
+  redeemedOrderId      String?
+  subscriptionStatus   String    @default("NONE") // NONE | ACTIVE | PAUSED | CANCELLED
+  churnedAt            DateTime?
+  churnReason          String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([shop, customerId])
+  @@index([shop, subscriptionStatus])
+  @@index([shop, discountCodeIssued])
+}
+
+model DailyRevenueAggregate {
+  id                      String   @id @default(cuid())
+  shop                    String
+  date                    DateTime
+  totalRevenue            Float    @default(0.0)
+  oneClickUpsellRevenue   Float    @default(0.0)
+  discountRevenue         Float    @default(0.0)
+  subscriptionRevenue     Float    @default(0.0)
+  giftWrapRevenue         Float    @default(0.0)
+  shippingFeeSaved        Float    @default(0.0)
+  repeatOrdersCount       Int      @default(0)
+  newSubscribersCount     Int      @default(0)
+  churnedSubscribersCount Int      @default(0)
+  activeSubscribersCount  Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([shop, date])
+  @@index([shop, date])
+}
