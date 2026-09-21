@@ -244,10 +244,20 @@ export default function MoneyMadePage() {
   } = useLoaderData<typeof loader>();
 
   const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
-  const oneClickPct = Math.min(100, Math.round((oneClickRevenue / totalRevenue) * 100));
-  const discountPct = Math.min(100, Math.round((discountRevenue / totalRevenue) * 100));
-  const subPct = Math.min(100, Math.round((subscriptionRevenue / totalRevenue) * 100));
-  const giftPct = Math.min(100, Math.round((giftWrapRevenue / totalRevenue) * 100));
+
+  const formatPct = (amount: number) => {
+    if (!amount || totalRevenue <= 0) return "0%";
+    const raw = (amount / totalRevenue) * 100;
+    if (raw > 0 && raw < 1) return "<1%";
+    return `${Math.min(100, Math.round(raw))}%`;
+  };
+
+  const getBarWidth = (amount: number) => {
+    if (!amount || totalRevenue <= 0) return "0%";
+    const raw = (amount / totalRevenue) * 100;
+    if (raw > 0 && raw < 1) return "1.5%";
+    return `${Math.min(100, Math.round(raw))}%`;
+  };
 
   return (
     <s-page heading="Money Made">
@@ -407,40 +417,40 @@ export default function MoneyMadePage() {
               <div>
                 <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
                   <span>📦 1-Click Zero-Shipping Upsell</span>
-                  <span>${oneClickRevenue.toFixed(2)} ({oneClickPct}%)</span>
+                  <span>${oneClickRevenue.toFixed(2)} ({formatPct(oneClickRevenue)})</span>
                 </div>
                 <div style={{background: "#e2e8f0", height: "10px", borderRadius: "5px", overflow: "hidden"}}>
-                  <div style={{background: "#0284c7", width: `${oneClickPct}%`, height: "100%"}} />
+                  <div style={{background: "#0284c7", width: getBarWidth(oneClickRevenue), height: "100%"}} />
                 </div>
               </div>
 
               <div>
                 <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
                   <span>🏷️ Returning Customer Purchases (Discount Codes)</span>
-                  <span>${discountRevenue.toFixed(2)} ({discountPct}%)</span>
+                  <span>${discountRevenue.toFixed(2)} ({formatPct(discountRevenue)})</span>
                 </div>
                 <div style={{background: "#e2e8f0", height: "10px", borderRadius: "5px", overflow: "hidden"}}>
-                  <div style={{background: "#16a34a", width: `${discountPct}%`, height: "100%"}} />
+                  <div style={{background: "#16a34a", width: getBarWidth(discountRevenue), height: "100%"}} />
                 </div>
               </div>
 
               <div>
                 <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
                   <span>🔄 Subscription Retained Renewals</span>
-                  <span>${subscriptionRevenue.toFixed(2)} ({subPct}%)</span>
+                  <span>${subscriptionRevenue.toFixed(2)} ({formatPct(subscriptionRevenue)})</span>
                 </div>
                 <div style={{background: "#e2e8f0", height: "10px", borderRadius: "5px", overflow: "hidden"}}>
-                  <div style={{background: "#d97706", width: `${subPct}%`, height: "100%"}} />
+                  <div style={{background: "#d97706", width: getBarWidth(subscriptionRevenue), height: "100%"}} />
                 </div>
               </div>
 
               <div>
                 <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
                   <span>🎁 Gift Wrap Add-ons</span>
-                  <span>${giftWrapRevenue.toFixed(2)} ({giftPct}%)</span>
+                  <span>${giftWrapRevenue.toFixed(2)} ({formatPct(giftWrapRevenue)})</span>
                 </div>
                 <div style={{background: "#e2e8f0", height: "10px", borderRadius: "5px", overflow: "hidden"}}>
-                  <div style={{background: "#9333ea", width: `${giftPct}%`, height: "100%"}} />
+                  <div style={{background: "#9333ea", width: getBarWidth(giftWrapRevenue), height: "100%"}} />
                 </div>
               </div>
             </s-stack>
