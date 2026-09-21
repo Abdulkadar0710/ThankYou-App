@@ -1,12 +1,15 @@
 import type {LoaderFunctionArgs} from "react-router";
-import {useLoaderData} from "react-router";
-import {useState} from "react";
+import {useLoaderData, useSearchParams} from "react-router";
 import prisma from "../db.server";
 import {authenticate} from "../shopify.server";
 
 export const loader = async ({request}: LoaderFunctionArgs) => {
   const {admin, session} = await authenticate.admin(request);
   const shop = session.shop;
+
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const PAGE_SIZE = 10;
 
   // 0. Auto-sync recent shop orders (discount codes & gift wrap options)
   try {
@@ -130,36 +133,56 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     console.error("Order sync error in Money Made loader:", syncErr);
   }
 
-  // 1. Fetch all completed conversions from database
+  // 1. Fetch total count & aggregate earnings by feature type
+  const totalConversionsCount = await prisma.upsellConversion.count({
+    where: {shop, status: "COMPLETED"},
+  });
+
+  const totals = await prisma.upsellConversion.groupBy({
+    by: ['featureType'],
+    where: {shop, status: "COMPLETED"},
+    _sum: {
+      amount: true,
+      shippingFeeSaved: true,
+    },
+  });
+
+  let oneClickRevenue = 0;
+  let discountRevenue = 0;
+  let subscriptionRevenue = 0;
+  let giftWrapRevenue = 0;
+
+  totals.forEach((group) => {
+    const sum = group._sum.amount || 0;
+    if (group.featureType === "ONE_CLICK_UPSELL") oneClickRevenue = sum;
+    if (group.featureType === "DISCOUNT_CODE") discountRevenue = sum;
+    if (group.featureType === "SUBSCRIPTION") subscriptionRevenue = sum;
+    if (group.featureType === "GIFT_WRAP") giftWrapRevenue = sum;
+  });
+
+  const oneClickCount = await prisma.upsellConversion.count({
+    where: {shop, status: "COMPLETED", featureType: "ONE_CLICK_UPSELL"},
+  });
+
+  const totalShippingFeeSavedResult = await prisma.upsellConversion.aggregate({
+    where: {shop, status: "COMPLETED"},
+    _sum: {
+      shippingFeeSaved: true,
+    },
+  });
+
+  const totalShippingFeeSaved = totalShippingFeeSavedResult._sum.shippingFeeSaved || 0;
+  const totalRevenueAdded = oneClickRevenue + discountRevenue + subscriptionRevenue + giftWrapRevenue;
+
+  // 2. Fetch server-paginated conversions (10 rows per page demand fetch)
   const conversions = await prisma.upsellConversion.findMany({
     where: {shop, status: "COMPLETED"},
     orderBy: {createdAt: "desc"},
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
   });
 
-  // 2. Aggregate earnings by feature type
-  const oneClickRevenue = conversions
-    .filter((c) => c.featureType === "ONE_CLICK_UPSELL")
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const discountRevenue = conversions
-    .filter((c) => c.featureType === "DISCOUNT_CODE")
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const subscriptionRevenue = conversions
-    .filter((c) => c.featureType === "SUBSCRIPTION")
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const giftWrapRevenue = conversions
-    .filter((c) => c.featureType === "GIFT_WRAP")
-    .reduce((sum, c) => sum + c.amount, 0);
-
-  const totalShippingFeeSaved = conversions.reduce(
-    (sum, c) => sum + (c.shippingFeeSaved || 0),
-    0,
-  );
-
-  const totalRevenueAdded =
-    oneClickRevenue + discountRevenue + subscriptionRevenue + giftWrapRevenue;
+  const totalPages = Math.ceil(totalConversionsCount / PAGE_SIZE) || 1;
 
   // 3. Calculate Retention & Repeat Purchase Metrics dynamically
   const totalCustomers = await prisma.customerRetentionLog.count({
@@ -197,7 +220,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     take: 10,
   });
 
-  const hasLiveData = conversions.length > 0;
+  const hasLiveData = totalConversionsCount > 0;
 
   const finalOneClick = hasLiveData ? oneClickRevenue : 2480.0;
   const finalDiscount = hasLiveData ? discountRevenue : 680.0;
@@ -208,6 +231,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   return {
     shop,
+    page,
+    totalPages,
+    totalConversionsCount: hasLiveData ? totalConversionsCount : 15,
     totalRevenueAdded: finalTotalRevenue,
     oneClickRevenue: finalOneClick,
     discountRevenue: finalDiscount,
@@ -216,7 +242,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     totalShippingFeeSaved: finalShippingSaved,
     repeatPurchaseRate,
     churnRate,
-    oneClickCount: conversions.filter((c) => c.featureType === "ONE_CLICK_UPSELL").length,
+    oneClickCount,
     conversions: conversions.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
@@ -242,17 +268,20 @@ export default function MoneyMadePage() {
     oneClickCount,
     conversions,
     repeatLogs,
+    page,
+    totalPages,
+    totalConversionsCount,
   } = useLoaderData<typeof loader>();
 
-  const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
-  const totalPages = Math.ceil(conversions.length / PAGE_SIZE) || 1;
-  const paginatedConversions = conversions.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", String(newPage));
+    setSearchParams(params);
+  };
+
+  const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
 
   const formatPct = (amount: number) => {
     if (!amount || totalRevenue <= 0) return "0%";
@@ -480,7 +509,7 @@ export default function MoneyMadePage() {
                   <s-table-header>Status</s-table-header>
                 </s-table-header-row>
                 <s-table-body>
-                  {paginatedConversions.map((conv) => (
+                  {conversions.map((conv) => (
                     <s-table-row key={conv.id}>
                       <s-table-cell>{conv.orderNumber || shortGid(conv.orderId)}</s-table-cell>
                       <s-table-cell>{featureLabel(conv.featureType)}</s-table-cell>
@@ -493,7 +522,7 @@ export default function MoneyMadePage() {
                 </s-table-body>
               </s-table>
 
-              {/* Pagination controls */}
+              {/* On-demand server pagination controls */}
               <div
                 style={{
                   display: "flex",
@@ -506,25 +535,25 @@ export default function MoneyMadePage() {
                 }}
               >
                 <s-text color="subdued">
-                  Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, conversions.length)}–
-                  {Math.min(currentPage * PAGE_SIZE, conversions.length)} of {conversions.length} entries
+                  Showing {Math.min((page - 1) * 10 + 1, totalConversionsCount)}–
+                  {Math.min(page * 10, totalConversionsCount)} of {totalConversionsCount} entries
                 </s-text>
 
                 <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
                   <s-button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={page <= 1}
+                    onClick={() => handlePageChange(page - 1)}
                   >
                     &lt;
                   </s-button>
 
                   <s-text type="strong">
-                    Page {currentPage} of {totalPages}
+                    Page {page} of {totalPages}
                   </s-text>
 
                   <s-button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={page >= totalPages}
+                    onClick={() => handlePageChange(page + 1)}
                   >
                     &gt;
                   </s-button>
