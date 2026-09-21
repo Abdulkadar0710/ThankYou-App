@@ -278,7 +278,7 @@ export default function MoneyMadePage() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams);
     params.set("page", String(newPage));
-    setSearchParams(params);
+    setSearchParams(params, { preventScrollReset: true });
   };
 
   const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
