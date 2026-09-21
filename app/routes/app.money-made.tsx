@@ -1,5 +1,6 @@
 import type {LoaderFunctionArgs} from "react-router";
 import {useLoaderData} from "react-router";
+import {useState} from "react";
 import prisma from "../db.server";
 import {authenticate} from "../shopify.server";
 
@@ -216,7 +217,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     repeatPurchaseRate,
     churnRate,
     oneClickCount: conversions.filter((c) => c.featureType === "ONE_CLICK_UPSELL").length,
-    conversions: conversions.slice(0, 15).map((c) => ({
+    conversions: conversions.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
     })),
@@ -244,6 +245,14 @@ export default function MoneyMadePage() {
   } = useLoaderData<typeof loader>();
 
   const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(conversions.length / PAGE_SIZE) || 1;
+  const paginatedConversions = conversions.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const formatPct = (amount: number) => {
     if (!amount || totalRevenue <= 0) return "0%";
@@ -460,28 +469,68 @@ export default function MoneyMadePage() {
         {/* Live Upsell Conversions Table */}
         <s-section heading="Live Upsell Conversions">
           {conversions.length ? (
-            <s-table>
-              <s-table-header-row>
-                <s-table-header listSlot="primary">Order</s-table-header>
-                <s-table-header>Feature</s-table-header>
-                <s-table-header>Item Added</s-table-header>
-                <s-table-header format="numeric">Revenue Added</s-table-header>
-                <s-table-header>Extra Shipping Fee</s-table-header>
-                <s-table-header>Status</s-table-header>
-              </s-table-header-row>
-              <s-table-body>
-                {conversions.map((conv) => (
-                  <s-table-row key={conv.id}>
-                    <s-table-cell>{conv.orderNumber || shortGid(conv.orderId)}</s-table-cell>
-                    <s-table-cell>{featureLabel(conv.featureType)}</s-table-cell>
-                    <s-table-cell>{conv.itemTitle}</s-table-cell>
-                    <s-table-cell>${conv.amount.toFixed(2)}</s-table-cell>
-                    <s-table-cell>${conv.shippingFeeSaved.toFixed(2)} (Same Box)</s-table-cell>
-                    <s-table-cell>{conv.status}</s-table-cell>
-                  </s-table-row>
-                ))}
-              </s-table-body>
-            </s-table>
+            <s-box padding="none">
+              <s-table>
+                <s-table-header-row>
+                  <s-table-header listSlot="primary">Order</s-table-header>
+                  <s-table-header>Feature</s-table-header>
+                  <s-table-header>Item Added</s-table-header>
+                  <s-table-header format="numeric">Revenue Added</s-table-header>
+                  <s-table-header>Extra Shipping Fee</s-table-header>
+                  <s-table-header>Status</s-table-header>
+                </s-table-header-row>
+                <s-table-body>
+                  {paginatedConversions.map((conv) => (
+                    <s-table-row key={conv.id}>
+                      <s-table-cell>{conv.orderNumber || shortGid(conv.orderId)}</s-table-cell>
+                      <s-table-cell>{featureLabel(conv.featureType)}</s-table-cell>
+                      <s-table-cell>{conv.itemTitle}</s-table-cell>
+                      <s-table-cell>${conv.amount.toFixed(2)}</s-table-cell>
+                      <s-table-cell>${conv.shippingFeeSaved.toFixed(2)} (Same Box)</s-table-cell>
+                      <s-table-cell>{conv.status}</s-table-cell>
+                    </s-table-row>
+                  ))}
+                </s-table-body>
+              </s-table>
+
+              {/* Pagination controls */}
+              <div
+                style={{
+                  display: "flex",
+                  justify: "space-between",
+                  alignItems: "center",
+                  padding: "12px 16px",
+                  borderTop: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  borderRadius: "0 0 8px 8px",
+                }}
+              >
+                <s-text color="subdued">
+                  Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, conversions.length)}–
+                  {Math.min(currentPage * PAGE_SIZE, conversions.length)} of {conversions.length} entries
+                </s-text>
+
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <s-button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    &lt;
+                  </s-button>
+
+                  <s-text type="strong">
+                    Page {currentPage} of {totalPages}
+                  </s-text>
+
+                  <s-button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  >
+                    &gt;
+                  </s-button>
+                </div>
+              </div>
+            </s-box>
           ) : (
             <s-table>
               <s-table-header-row>
