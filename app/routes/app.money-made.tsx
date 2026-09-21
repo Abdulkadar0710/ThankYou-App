@@ -4,8 +4,75 @@ import prisma from "../db.server";
 import {authenticate} from "../shopify.server";
 
 export const loader = async ({request}: LoaderFunctionArgs) => {
-  const {session} = await authenticate.admin(request);
+  const {admin, session} = await authenticate.admin(request);
   const shop = session.shop;
+
+  // 0. Auto-sync recent shop orders that used discount codes (in case webhook was missed)
+  try {
+    const ordersRes = await admin.graphql(
+      `
+        query GetRecentDiscountOrders {
+          orders(first: 50, sortKey: CREATED_AT, reverse: true) {
+            nodes {
+              id
+              name
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              customer {
+                id
+                email
+              }
+              discountCodes
+              createdAt
+            }
+          }
+        }
+      `
+    );
+    const ordersData = await ordersRes.json();
+    const shopifyOrders = ordersData?.data?.orders?.nodes || [];
+
+    for (const order of shopifyOrders) {
+      const discountCodes = Array.isArray(order.discountCodes) ? order.discountCodes : [];
+      if (!discountCodes.length) continue;
+
+      const orderId = order.id;
+      const orderNumber = order.name;
+      const orderAmount = parseFloat(order.totalPriceSet?.shopMoney?.amount || "0") || 0;
+      const currency = order.totalPriceSet?.shopMoney?.currencyCode || "USD";
+      const customerId = order.customer?.id || null;
+      const customerEmail = order.customer?.email || null;
+      const code = discountCodes[0];
+
+      const existing = await prisma.upsellConversion.findFirst({
+        where: { shop, orderId, featureType: "DISCOUNT_CODE" },
+      });
+
+      if (!existing) {
+        await prisma.upsellConversion.create({
+          data: {
+            shop,
+            orderId,
+            orderNumber,
+            customerId,
+            customerEmail,
+            featureType: "DISCOUNT_CODE",
+            itemTitle: `Discount Redeemed: ${code}`,
+            amount: orderAmount,
+            currency,
+            discountCode: code,
+            status: "COMPLETED",
+          },
+        });
+      }
+    }
+  } catch (syncErr) {
+    console.error("Order sync error in Money Made loader:", syncErr);
+  }
 
   // 1. Fetch all completed conversions from database
   const conversions = await prisma.upsellConversion.findMany({
