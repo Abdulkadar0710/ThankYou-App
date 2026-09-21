@@ -7,11 +7,11 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const {admin, session} = await authenticate.admin(request);
   const shop = session.shop;
 
-  // 0. Auto-sync recent shop orders that used discount codes (in case webhook was missed)
+  // 0. Auto-sync recent shop orders (discount codes & gift wrap options)
   try {
     const ordersRes = await admin.graphql(
       `
-        query GetRecentDiscountOrders {
+        query GetRecentOrdersForMoneyMade {
           orders(first: 50, sortKey: CREATED_AT, reverse: true) {
             nodes {
               id
@@ -27,6 +27,20 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
                 email
               }
               discountCodes
+              customAttributes {
+                key
+                value
+              }
+              lineItems(first: 20) {
+                nodes {
+                  title
+                  originalUnitPriceSet {
+                    shopMoney {
+                      amount
+                    }
+                  }
+                }
+              }
               createdAt
             }
           }
@@ -37,37 +51,78 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     const shopifyOrders = ordersData?.data?.orders?.nodes || [];
 
     for (const order of shopifyOrders) {
-      const discountCodes = Array.isArray(order.discountCodes) ? order.discountCodes : [];
-      if (!discountCodes.length) continue;
-
       const orderId = order.id;
       const orderNumber = order.name;
       const orderAmount = parseFloat(order.totalPriceSet?.shopMoney?.amount || "0") || 0;
       const currency = order.totalPriceSet?.shopMoney?.currencyCode || "USD";
       const customerId = order.customer?.id || null;
       const customerEmail = order.customer?.email || null;
-      const code = discountCodes[0];
 
-      const existing = await prisma.upsellConversion.findFirst({
-        where: { shop, orderId, featureType: "DISCOUNT_CODE" },
-      });
-
-      if (!existing) {
-        await prisma.upsellConversion.create({
-          data: {
-            shop,
-            orderId,
-            orderNumber,
-            customerId,
-            customerEmail,
-            featureType: "DISCOUNT_CODE",
-            itemTitle: `Discount Redeemed: ${code}`,
-            amount: orderAmount,
-            currency,
-            discountCode: code,
-            status: "COMPLETED",
-          },
+      // 1. Sync Discount Codes
+      const discountCodes = Array.isArray(order.discountCodes) ? order.discountCodes : [];
+      if (discountCodes.length) {
+        const code = discountCodes[0];
+        const existingDiscount = await prisma.upsellConversion.findFirst({
+          where: { shop, orderId, featureType: "DISCOUNT_CODE" },
         });
+
+        if (!existingDiscount) {
+          await prisma.upsellConversion.create({
+            data: {
+              shop,
+              orderId,
+              orderNumber,
+              customerId,
+              customerEmail,
+              featureType: "DISCOUNT_CODE",
+              itemTitle: `Discount Redeemed: ${code}`,
+              amount: orderAmount,
+              currency,
+              discountCode: code,
+              status: "COMPLETED",
+            },
+          });
+        }
+      }
+
+      // 2. Sync Gift Wrap Add-ons
+      const customAttrs = Array.isArray(order.customAttributes) ? order.customAttributes : [];
+      const hasGiftWrapAttr = customAttrs.some(
+        (attr: {key?: string; value?: string}) =>
+          attr.key === "Gift wrap" && String(attr.value).toLowerCase() === "yes"
+      );
+
+      const lineItems = order.lineItems?.nodes || [];
+      const giftWrapLineItem = lineItems.find(
+        (item: {title?: string}) =>
+          (item.title || "").toLowerCase().includes("gift wrap")
+      );
+
+      if (hasGiftWrapAttr || giftWrapLineItem) {
+        const itemPrice = parseFloat(
+          giftWrapLineItem?.originalUnitPriceSet?.shopMoney?.amount || "5.0"
+        ) || 5.0;
+
+        const existingGiftWrap = await prisma.upsellConversion.findFirst({
+          where: { shop, orderId, featureType: "GIFT_WRAP" },
+        });
+
+        if (!existingGiftWrap) {
+          await prisma.upsellConversion.create({
+            data: {
+              shop,
+              orderId,
+              orderNumber,
+              customerId,
+              customerEmail,
+              featureType: "GIFT_WRAP",
+              itemTitle: giftWrapLineItem?.title || "Gift Wrap Option",
+              amount: itemPrice,
+              currency,
+              status: "COMPLETED",
+            },
+          });
+        }
       }
     }
   } catch (syncErr) {

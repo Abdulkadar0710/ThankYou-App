@@ -85,24 +85,75 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
 
-      await db.upsellConversion.create({
-        data: {
-          shop,
-          orderId,
-          orderNumber,
-          customerId,
-          customerEmail,
-          featureType: "DISCOUNT_CODE",
-          itemTitle: `Discount Redeemed: ${redeemedCode}`,
-          amount: orderPrice,
-          currency,
-          discountCode: redeemedCode,
-          isRepeatPurchase: isRepeatCustomer,
-          firstOrderId: initialOrderId,
-          returnIntervalDays: returnDays,
-          status: "COMPLETED",
-        },
+      const existingDiscount = await db.upsellConversion.findFirst({
+        where: { shop, orderId, featureType: "DISCOUNT_CODE" },
       });
+
+      if (!existingDiscount) {
+        await db.upsellConversion.create({
+          data: {
+            shop,
+            orderId,
+            orderNumber,
+            customerId,
+            customerEmail,
+            featureType: "DISCOUNT_CODE",
+            itemTitle: `Discount Redeemed: ${redeemedCode}`,
+            amount: orderPrice,
+            currency,
+            discountCode: redeemedCode,
+            isRepeatPurchase: isRepeatCustomer,
+            firstOrderId: initialOrderId,
+            returnIntervalDays: returnDays,
+            status: "COMPLETED",
+          },
+        });
+      }
+    }
+
+    // Check Gift Wrap options (custom attributes or line items)
+    const noteAttributes = Array.isArray(payload.note_attributes)
+      ? payload.note_attributes
+      : Array.isArray(payload.custom_attributes)
+      ? payload.custom_attributes
+      : [];
+
+    const hasGiftWrapAttr = noteAttributes.some(
+      (attr: {name?: string; key?: string; value?: string}) =>
+        (attr.name === "Gift wrap" || attr.key === "Gift wrap") &&
+        String(attr.value).toLowerCase() === "yes"
+    );
+
+    const giftWrapLineItem = (payload.line_items || []).find(
+      (item: {title?: string; name?: string; price?: string}) =>
+        (item.title || item.name || "").toLowerCase().includes("gift wrap")
+    );
+
+    if (hasGiftWrapAttr || giftWrapLineItem) {
+      const giftWrapAmount = giftWrapLineItem
+        ? parseFloat(giftWrapLineItem.price || "5.0") || 5.0
+        : 5.0;
+
+      const existingGiftWrap = await db.upsellConversion.findFirst({
+        where: { shop, orderId, featureType: "GIFT_WRAP" },
+      });
+
+      if (!existingGiftWrap) {
+        await db.upsellConversion.create({
+          data: {
+            shop,
+            orderId,
+            orderNumber,
+            customerId,
+            customerEmail,
+            featureType: "GIFT_WRAP",
+            itemTitle: giftWrapLineItem?.title || giftWrapLineItem?.name || "Gift Wrap Option",
+            amount: giftWrapAmount,
+            currency,
+            status: "COMPLETED",
+          },
+        });
+      }
     }
   } catch (error) {
     console.error("Error processing orders_create webhook:", error);
