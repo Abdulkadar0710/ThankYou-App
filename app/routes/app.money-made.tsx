@@ -281,6 +281,7 @@ export default function MoneyMadePage() {
     setSearchParams(params, { preventScrollReset: true });
   };
 
+  
   const totalRevenue = totalRevenueAdded > 0 ? totalRevenueAdded : 1;
 
   const formatPct = (amount: number) => {
