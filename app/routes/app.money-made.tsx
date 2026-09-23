@@ -315,47 +315,12 @@ export default function MoneyMadePage() {
                 ${totalRevenueAdded.toFixed(2)}
               </div>
               <div style={{fontSize: "14px", color: "#cbd5e1"}}>
-                Generated through 1-Click zero-shipping upsells & repeat customer offers
+                Generated through 1-Click zero-shipping upsells, repeat customer offers and Gift Wrap Add-ons.
               </div>
             </div>
 
           </div>
         </div>
-
-        {/* Metric Cards Grid */}
-        <s-grid gap="base" gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))">
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-stack gap="small-200">
-              <s-text color="subdued">📦 1-Click "Add to Same Box"</s-text>
-              <s-heading>${oneClickRevenue.toFixed(2)}</s-heading>
-              <s-text tone="success">{oneClickCount} orders completed</s-text>
-            </s-stack>
-          </s-box>
-
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-stack gap="small-200">
-              <s-text color="subdued">🏷️ Returning Customer Revenue</s-text>
-              <s-heading>${discountRevenue.toFixed(2)}</s-heading>
-              <s-text tone="success">{repeatPurchaseRate}% repeat purchase rate</s-text>
-            </s-stack>
-          </s-box>
-
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-stack gap="small-200">
-              <s-text color="subdued">📉 Customer Churn Rate</s-text>
-              <s-heading>{churnRate}%</s-heading>
-              <s-text tone="success">Active retention tracking</s-text>
-            </s-stack>
-          </s-box>
-
-          <s-box padding="base" borderWidth="base" borderRadius="base">
-            <s-stack gap="small-200">
-              <s-text color="subdued">🎁 Gift Wrap Options</s-text>
-              <s-heading>${giftWrapRevenue.toFixed(2)}</s-heading>
-              <s-text tone="success">Gift revenue tracked</s-text>
-            </s-stack>
-          </s-box>
-        </s-grid>
 
 
 
