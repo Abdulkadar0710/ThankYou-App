@@ -210,21 +210,23 @@ function Extension() {
       // Build the set of all gift wrap variant IDs we know about
       const giftWrapVariantIds = new Set(variants.map((v) => v.id));
 
-      // Find any existing gift wrap line in the live cart
-      const existingLine = cartLines.find(
+      // Find ALL existing gift wrap lines in the live cart
+      const existingLines = cartLines.filter(
         (line) => giftWrapVariantIds.has(line?.merchandise?.id)
       );
 
-      // Remove the old gift wrap line if present
-      if (existingLine?.id) {
-        const removeResult = await api.applyCartLinesChange({
-          type: 'removeCartLine',
-          id: existingLine.id,
-          quantity: existingLine.quantity || 1,
-        });
-        if (removeResult?.type === 'error') {
-          // Non-fatal — still try to add the new one
-          console.warn('Could not remove old gift wrap line:', removeResult.message);
+      // Remove every existing gift wrap line before adding the new one
+      for (const existingLine of existingLines) {
+        if (existingLine?.id) {
+          const removeResult = await api.applyCartLinesChange({
+            type: 'removeCartLine',
+            id: existingLine.id,
+            quantity: existingLine.quantity || 1,
+          });
+          if (removeResult?.type === 'error') {
+            // Non-fatal — still continue removing others and add the new one
+            console.warn('Could not remove gift wrap line:', removeResult.message);
+          }
         }
       }
 
