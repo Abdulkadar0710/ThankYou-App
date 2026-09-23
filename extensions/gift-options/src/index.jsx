@@ -35,9 +35,12 @@ function Extension() {
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedCartLineId, setAddedCartLineId] = useState(null); // tracks the added cart line for removal
+  const [addedToCart, setAddedToCart] = useState(false); // true once gift wrap is in cart
   const [addedVariantTitle, setAddedVariantTitle] = useState('');
   const [cartError, setCartError] = useState('');
+
+  // Live cart lines — used to find & remove the existing gift wrap line
+  const cartLines = useSignalValue(api?.lines) || [];
 
   const attributes = useSignalValue(api?.attributes) || [];
   const giftWrapValue = attributeValue(attributes, GIFT_WRAP_KEY) === 'Yes';
@@ -77,7 +80,7 @@ function Extension() {
   // Fetch gift wrap variants when the checkbox is checked
   useEffect(() => {
     if (!giftWrapValue) {
-      setAddedCartLineId(null);
+      setAddedToCart(false);
       setAddedVariantTitle('');
       setCartError('');
       return;
@@ -192,7 +195,7 @@ function Extension() {
     saveGiftMessage(giftMessageDraftRef.current);
   };
 
-  // Add the selected gift wrap variant to the cart
+  // Add (or swap) the selected gift wrap variant in the cart
   const handleAddGiftWrapToCart = async () => {
     if (!selectedVariantId) return;
     if (!api?.applyCartLinesChange) {
@@ -204,15 +207,28 @@ function Extension() {
     setCartError('');
 
     try {
-      // Remove the previously added gift wrap line if changing
-      if (addedCartLineId) {
-        await api.applyCartLinesChange({
+      // Build the set of all gift wrap variant IDs we know about
+      const giftWrapVariantIds = new Set(variants.map((v) => v.id));
+
+      // Find any existing gift wrap line in the live cart
+      const existingLine = cartLines.find(
+        (line) => giftWrapVariantIds.has(line?.merchandise?.id)
+      );
+
+      // Remove the old gift wrap line if present
+      if (existingLine?.id) {
+        const removeResult = await api.applyCartLinesChange({
           type: 'removeCartLine',
-          id: addedCartLineId,
-          quantity: 1,
+          id: existingLine.id,
+          quantity: existingLine.quantity || 1,
         });
+        if (removeResult?.type === 'error') {
+          // Non-fatal — still try to add the new one
+          console.warn('Could not remove old gift wrap line:', removeResult.message);
+        }
       }
 
+      // Add the newly selected gift wrap variant
       const result = await api.applyCartLinesChange({
         type: 'addCartLine',
         merchandiseId: selectedVariantId,
@@ -222,13 +238,9 @@ function Extension() {
       if (result?.type === 'error') {
         setCartError(result.message || 'Could not add gift wrap to cart.');
       } else {
-        // Store the cart line ID returned so we can remove it later if user changes
-        const newLineId = result?.cart?.lines?.find?.(
-          (l) => l.merchandise?.id === selectedVariantId
-        )?.id || result?.cartLineId || null;
-        setAddedCartLineId(newLineId);
         const picked = variants.find((v) => v.id === selectedVariantId);
         setAddedVariantTitle(picked?.title || 'Gift wrap');
+        setAddedToCart(true);
       }
     } catch (err) {
       setCartError(err?.message || 'Could not add gift wrap to cart.');
@@ -237,10 +249,10 @@ function Extension() {
     }
   };
 
-  // Reset to allow re-selection
+  // Reset picker so the user can choose a different variant
   const handleChangeGiftWrap = () => {
+    setAddedToCart(false);
     setCartError('');
-    // Don't remove the line yet — removal happens when user confirms new selection
   };
 
   if (loading) {
@@ -306,17 +318,12 @@ function Extension() {
 
               {cartError && <s-text tone="critical">{cartError}</s-text>}
 
-              {addedCartLineId ? (
+              {addedToCart ? (
                 <s-stack gap="small">
                   <s-text tone="success">🎁 {addedVariantTitle} added to your order!</s-text>
-                  <s-stack gap="small" direction="inline">
-                    <s-button
-                      disabled={addingToCart || !selectedVariantId}
-                      onClick={handleAddGiftWrapToCart}
-                    >
-                      {addingToCart ? 'Updating…' : 'Change gift wrap'}
-                    </s-button>
-                  </s-stack>
+                  <s-button onClick={handleChangeGiftWrap}>
+                    Change gift wrap
+                  </s-button>
                 </s-stack>
               ) : (
                 <s-button
