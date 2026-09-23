@@ -35,7 +35,8 @@ function Extension() {
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
+  const [addedCartLineId, setAddedCartLineId] = useState(null); // tracks the added cart line for removal
+  const [addedVariantTitle, setAddedVariantTitle] = useState('');
   const [cartError, setCartError] = useState('');
 
   const attributes = useSignalValue(api?.attributes) || [];
@@ -76,7 +77,8 @@ function Extension() {
   // Fetch gift wrap variants when the checkbox is checked
   useEffect(() => {
     if (!giftWrapValue) {
-      setAddedToCart(false);
+      setAddedCartLineId(null);
+      setAddedVariantTitle('');
       setCartError('');
       return;
     }
@@ -202,6 +204,15 @@ function Extension() {
     setCartError('');
 
     try {
+      // Remove the previously added gift wrap line if changing
+      if (addedCartLineId) {
+        await api.applyCartLinesChange({
+          type: 'removeCartLine',
+          id: addedCartLineId,
+          quantity: 1,
+        });
+      }
+
       const result = await api.applyCartLinesChange({
         type: 'addCartLine',
         merchandiseId: selectedVariantId,
@@ -211,13 +222,25 @@ function Extension() {
       if (result?.type === 'error') {
         setCartError(result.message || 'Could not add gift wrap to cart.');
       } else {
-        setAddedToCart(true);
+        // Store the cart line ID returned so we can remove it later if user changes
+        const newLineId = result?.cart?.lines?.find?.(
+          (l) => l.merchandise?.id === selectedVariantId
+        )?.id || result?.cartLineId || null;
+        setAddedCartLineId(newLineId);
+        const picked = variants.find((v) => v.id === selectedVariantId);
+        setAddedVariantTitle(picked?.title || 'Gift wrap');
       }
     } catch (err) {
       setCartError(err?.message || 'Could not add gift wrap to cart.');
     } finally {
       setAddingToCart(false);
     }
+  };
+
+  // Reset to allow re-selection
+  const handleChangeGiftWrap = () => {
+    setCartError('');
+    // Don't remove the line yet — removal happens when user confirms new selection
   };
 
   if (loading) {
@@ -283,8 +306,18 @@ function Extension() {
 
               {cartError && <s-text tone="critical">{cartError}</s-text>}
 
-              {addedToCart ? (
-                <s-text tone="success">🎁 Gift wrap added to your order!</s-text>
+              {addedCartLineId ? (
+                <s-stack gap="small">
+                  <s-text tone="success">🎁 {addedVariantTitle} added to your order!</s-text>
+                  <s-stack gap="small" direction="inline">
+                    <s-button
+                      disabled={addingToCart || !selectedVariantId}
+                      onClick={handleAddGiftWrapToCart}
+                    >
+                      {addingToCart ? 'Updating…' : 'Change gift wrap'}
+                    </s-button>
+                  </s-stack>
+                </s-stack>
               ) : (
                 <s-button
                   disabled={addingToCart || !selectedVariantId}
