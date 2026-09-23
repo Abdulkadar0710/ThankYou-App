@@ -149,14 +149,12 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   let oneClickRevenue = 0;
   let discountRevenue = 0;
-  let subscriptionRevenue = 0;
   let giftWrapRevenue = 0;
 
   totals.forEach((group) => {
     const sum = group._sum.amount || 0;
     if (group.featureType === "ONE_CLICK_UPSELL") oneClickRevenue = sum;
     if (group.featureType === "DISCOUNT_CODE") discountRevenue = sum;
-    if (group.featureType === "SUBSCRIPTION") subscriptionRevenue = sum;
     if (group.featureType === "GIFT_WRAP") giftWrapRevenue = sum;
   });
 
@@ -172,7 +170,7 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   });
 
   const totalShippingFeeSaved = totalShippingFeeSavedResult._sum.shippingFeeSaved || 0;
-  const totalRevenueAdded = oneClickRevenue + discountRevenue + subscriptionRevenue + giftWrapRevenue;
+  const totalRevenueAdded = oneClickRevenue + discountRevenue + giftWrapRevenue;
 
   // 2. Fetch server-paginated conversions (10 rows per page demand fetch)
   const conversions = await prisma.upsellConversion.findMany({
@@ -224,9 +222,8 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
 
   const finalOneClick = hasLiveData ? oneClickRevenue : 2480.0;
   const finalDiscount = hasLiveData ? discountRevenue : 680.0;
-  const finalSubscription = hasLiveData ? subscriptionRevenue : 290.0;
   const finalGiftWrap = hasLiveData ? giftWrapRevenue : 145.0;
-  const finalTotalRevenue = finalOneClick + finalDiscount + finalSubscription + finalGiftWrap;
+  const finalTotalRevenue = finalOneClick + finalDiscount + finalGiftWrap;
   const finalShippingSaved = hasLiveData ? totalShippingFeeSaved : 353.41;
 
   return {
@@ -237,7 +234,6 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     totalRevenueAdded: finalTotalRevenue,
     oneClickRevenue: finalOneClick,
     discountRevenue: finalDiscount,
-    subscriptionRevenue: finalSubscription,
     giftWrapRevenue: finalGiftWrap,
     totalShippingFeeSaved: finalShippingSaved,
     repeatPurchaseRate,
@@ -260,7 +256,6 @@ export default function MoneyMadePage() {
     totalRevenueAdded,
     oneClickRevenue,
     discountRevenue,
-    subscriptionRevenue,
     giftWrapRevenue,
     totalShippingFeeSaved,
     repeatPurchaseRate,
@@ -427,25 +422,7 @@ export default function MoneyMadePage() {
               </s-stack>
             </s-box>
 
-            <s-box padding="base" borderWidth="base" borderRadius="base">
-              <s-stack gap="small">
-                <s-text type="strong">📉 Subscription & Customer Churn Rate</s-text>
-                <s-heading>{churnRate}% Churn Rate</s-heading>
-                <s-text color="subdued">
-                  Thank You page subscription incentives & loyalty offers reduced customer churn and boosted lifetime value.
-                </s-text>
-                <div style={{marginTop: "8px", background: "#f1f5f9", padding: "12px", borderRadius: "8px"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 650}}>
-                    <span>Subscription Revenue:</span>
-                    <span style={{color: "#16a34a"}}>${subscriptionRevenue.toFixed(2)}</span>
-                  </div>
-                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 650, marginTop: "4px"}}>
-                    <span>Active Retention Tracking:</span>
-                    <span style={{color: "#0284c7"}}>Live DB Synced</span>
-                  </div>
-                </div>
-              </s-stack>
-            </s-box>
+
           </s-grid>
         </s-section>
 
@@ -473,15 +450,7 @@ export default function MoneyMadePage() {
                 </div>
               </div>
 
-              <div>
-                <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
-                  <span>🔄 Subscription Retained Renewals</span>
-                  <span>${subscriptionRevenue.toFixed(2)} ({formatPct(subscriptionRevenue)})</span>
-                </div>
-                <div style={{background: "#e2e8f0", height: "10px", borderRadius: "5px", overflow: "hidden"}}>
-                  <div style={{background: "#d97706", width: getBarWidth(subscriptionRevenue), height: "100%"}} />
-                </div>
-              </div>
+
 
               <div>
                 <div style={{display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "14px", fontWeight: 600}}>
@@ -606,7 +575,6 @@ function shortGid(value?: string | null) {
 function featureLabel(type: string) {
   if (type === "ONE_CLICK_UPSELL") return "📦 1-Click Upsell";
   if (type === "DISCOUNT_CODE") return "🏷️ Thank You Discount";
-  if (type === "SUBSCRIPTION") return "🔄 Subscription Signup";
   if (type === "GIFT_WRAP") return "🎁 Gift Options";
   return type;
 }
