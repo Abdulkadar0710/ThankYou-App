@@ -318,49 +318,7 @@ export default function MoneyMadePage() {
                 Generated through 1-Click zero-shipping upsells & repeat customer offers
               </div>
             </div>
-            <div style={{display: "flex", gap: "12px", flexWrap: "wrap"}}>
-              <div
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(10px)",
-                  padding: "12px 18px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{fontSize: "20px", fontWeight: 700, color: "#4ade80"}}>+18.4%</div>
-                <div style={{fontSize: "12px", color: "#94a3b8"}}>AOV Boost</div>
-              </div>
 
-              <div
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(10px)",
-                  padding: "12px 18px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{fontSize: "20px", fontWeight: 700, color: "#38bdf8"}}>{repeatPurchaseRate}%</div>
-                <div style={{fontSize: "12px", color: "#94a3b8"}}>Repeat Purchase Rate</div>
-              </div>
-
-              <div
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(10px)",
-                  padding: "12px 18px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{fontSize: "20px", fontWeight: 700, color: "#fbbf24"}}>${totalShippingFeeSaved.toFixed(2)}</div>
-                <div style={{fontSize: "12px", color: "#94a3b8"}}>Shipping Fee Saved</div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -399,32 +357,7 @@ export default function MoneyMadePage() {
           </s-box>
         </s-grid>
 
-        {/* Retention & Repeat Purchase Analytics */}
-        <s-section heading="Customer Retention & Repeat Purchases">
-          <s-grid gap="base" gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))">
-            <s-box padding="base" borderWidth="base" borderRadius="base">
-              <s-stack gap="small">
-                <s-text type="strong">🔁 Customer Repeat Purchase Rate</s-text>
-                <s-heading>{repeatPurchaseRate}% of Customers Returned</s-heading>
-                <s-text color="subdued">
-                  Customers returned to purchase again after receiving post-purchase Thank You discounts & referral rewards.
-                </s-text>
-                <div style={{marginTop: "8px", background: "#f1f5f9", padding: "12px", borderRadius: "8px"}}>
-                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 650}}>
-                    <span>Average Days to 2nd Purchase:</span>
-                    <span style={{color: "#0284c7"}}>14.2 Days</span>
-                  </div>
-                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: 650, marginTop: "4px"}}>
-                    <span>Repeat Customer Revenue:</span>
-                    <span style={{color: "#16a34a"}}>${discountRevenue.toFixed(2)}</span>
-                  </div>
-                </div>
-              </s-stack>
-            </s-box>
 
-
-          </s-grid>
-        </s-section>
 
         {/* Feature Revenue Breakdown */}
         <s-section heading="Revenue Breakdown by Feature">
