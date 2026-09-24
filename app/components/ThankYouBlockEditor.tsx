@@ -309,6 +309,8 @@ export function ThankYouBlockEditor({
                   <FreeShippingProgressFields config={config} />
                 ) : type === "giftOptions" ? (
                   <GiftOptionsFields config={config} />
+                ) : type === "howDidYouHear" ? (
+                  <HowDidYouHearFields config={config} />
                 ) : (
                   <UpsellFields config={config} />
                 )}
@@ -841,6 +843,20 @@ function DiscountFields({config}: {config: ThankYouBlockConfig}) {
         name="discountCode"
         value={config.discountCode || ""}
         maxLength={40}
+        required
+      />
+    </s-stack>
+  );
+}
+
+function HowDidYouHearFields({config}: {config: ThankYouBlockConfig}) {
+  return (
+    <s-stack gap="base">
+      <TextField
+        label="Heading"
+        name="heading"
+        value={config.heading || "How did you hear about us?"}
+        maxLength={100}
         required
       />
     </s-stack>

@@ -206,6 +206,7 @@ function TemplatePreview({ type }: { type: string }) {
   const fallbackPreviews: Record<string, string> = {
     freeShippingProgress: "Free Shipping Progress Bar",
     giftOptions: "Gift Options",
+    howDidYouHear: "How did you hear about us?",
   };
 
   if (!previewImages[type]) {

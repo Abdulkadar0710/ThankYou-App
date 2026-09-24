@@ -10,7 +10,8 @@ export type ThankYouBlockType =
   | "referral"
   | "loyalty"
   | "discount"
-  | "subscription";
+  | "subscription"
+  | "howDidYouHear";
 
 export type CheckoutUpsellProduct = {
   id: string;
@@ -230,6 +231,15 @@ export const blockTemplates = {
       successMessage: "Thanks for subscribing.",
     },
   },
+  howDidYouHear: {
+    type: "howDidYouHear",
+    title: "How did you hear about us?",
+    description: "Ask customers how they heard about your store.",
+    defaultName: "How did you hear about us?",
+    defaultConfig: {
+      heading: "How did you hear about us?",
+    },
+  },
 } as const;
 
 export function isBlockType(value: unknown): value is ThankYouBlockType {
@@ -245,7 +255,8 @@ export function isBlockType(value: unknown): value is ThankYouBlockType {
     value === "referral" ||
     value === "loyalty" ||
     value === "discount" ||
-    value === "subscription"
+    value === "subscription" ||
+    value === "howDidYouHear"
   );
 }
 
@@ -361,6 +372,12 @@ export function configFromForm(
       giftWrapLabel: field(formData, "giftWrapLabel"),
       giftMessageLabel: field(formData, "giftMessageLabel"),
       giftMessagePlaceholder: field(formData, "giftMessagePlaceholder"),
+    };
+  }
+
+  if (type === "howDidYouHear") {
+    return {
+      heading: field(formData, "heading"),
     };
   }
 
@@ -487,6 +504,10 @@ export function validateBlockForm(
     if (giftMessageEnabled) {
       requireText(errors, formData, "giftMessageLabel", "Gift message label");
     }
+  }
+
+  if (type === "howDidYouHear") {
+    requireText(errors, formData, "heading", "Heading");
   }
 
   if (type === "upsell" || type === "checkoutUpsell") {

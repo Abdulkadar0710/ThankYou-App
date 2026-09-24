@@ -1,0 +1,14 @@
+api_version = "2026-01"
+
+name = "How did you hear about us?"
+type = "ui_extension"
+uid = "d4f81c32-7e2a-4b0f-9c53-6a1d8e3f5b92"
+
+[[targeting]]
+module = "./src/index.jsx"
+target = "purchase.thank-you.block.render"
+
+[capabilities]
+api_access = true
+network_access = true
+multiple = false
