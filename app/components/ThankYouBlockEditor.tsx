@@ -850,6 +850,39 @@ function DiscountFields({config}: {config: ThankYouBlockConfig}) {
 }
 
 function HowDidYouHearFields({config}: {config: ThankYouBlockConfig}) {
+  const defaultOptions = [
+    "Social Media",
+    "Ads",
+    "Search Engine",
+    "Friend or Family",
+    "Other",
+  ];
+  const initialOptions = config.options?.length ? config.options : defaultOptions;
+  const [options, setOptions] = useState<string[]>(initialOptions);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.value = JSON.stringify(
+        options.filter((opt) => opt.trim()),
+      );
+    }
+  }, [options]);
+
+  const addOption = () => {
+    setOptions([...options, ""]);
+  };
+
+  const removeOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, value: string) => {
+    const updated = [...options];
+    updated[index] = value;
+    setOptions(updated);
+  };
+
   return (
     <s-stack gap="base">
       <TextField
@@ -858,6 +891,75 @@ function HowDidYouHearFields({config}: {config: ThankYouBlockConfig}) {
         value={config.heading || "How did you hear about us?"}
         maxLength={100}
         required
+      />
+
+      <input
+        ref={hiddenInputRef}
+        type="hidden"
+        name="options"
+        defaultValue={JSON.stringify(options.filter((opt) => opt.trim()))}
+      />
+
+      <s-stack gap="small">
+        <label style={labelStyle}>Options</label>
+        <s-text color="subdued">
+          Options shown to customers on the thank-you page.
+        </s-text>
+        {options.map((option, index) => (
+          <div
+            key={index}
+            style={{display: "flex", gap: "8px", alignItems: "center"}}
+          >
+            <input
+              style={fieldStyle}
+              value={option}
+              placeholder={`Option ${index + 1}`}
+              onChange={(e) => updateOption(index, e.target.value)}
+              required
+            />
+            {options.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeOption(index)}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  color: "#d82c0d",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  padding: "6px 10px",
+                }}
+                title="Remove option"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+
+        <div>
+          <button
+            type="button"
+            onClick={addOption}
+            style={secondaryButtonStyle}
+          >
+            + Add option
+          </button>
+        </div>
+      </s-stack>
+
+      <TextField
+        label="Button text"
+        name="buttonText"
+        value={config.buttonText || "Submit"}
+        maxLength={40}
+      />
+
+      <TextField
+        label="Success message"
+        name="successMessage"
+        value={config.successMessage || "Thank you for your feedback!"}
+        maxLength={120}
       />
     </s-stack>
   );

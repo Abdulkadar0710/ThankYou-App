@@ -87,6 +87,7 @@ export type ThankYouBlockConfig = {
   subscriptionBody?: string;
   emailPlaceholder?: string;
   successMessage?: string;
+  options?: string[];
 };
 
 export const blockTemplates = {
@@ -238,6 +239,15 @@ export const blockTemplates = {
     defaultName: "How did you hear about us?",
     defaultConfig: {
       heading: "How did you hear about us?",
+      options: [
+        "Social Media",
+        "Ads",
+        "Search Engine",
+        "Friend or Family",
+        "Other",
+      ],
+      buttonText: "Submit",
+      successMessage: "Thank you for your feedback!",
     },
   },
 } as const;
@@ -376,8 +386,35 @@ export function configFromForm(
   }
 
   if (type === "howDidYouHear") {
+    let options: string[] = [];
+    try {
+      const rawOptions = formData.get("options");
+      if (typeof rawOptions === "string" && rawOptions.trim()) {
+        const parsed = JSON.parse(rawOptions);
+        if (Array.isArray(parsed)) {
+          options = parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+      }
+    } catch {
+      options = [];
+    }
+
+    if (!options.length) {
+      options = [
+        "Social Media",
+        "Ads",
+        "Search Engine",
+        "Friend or Family",
+        "Other",
+      ];
+    }
+
     return {
       heading: field(formData, "heading"),
+      options,
+      buttonText: field(formData, "buttonText") || "Submit",
+      successMessage:
+        field(formData, "successMessage") || "Thank you for your feedback!",
     };
   }
 
