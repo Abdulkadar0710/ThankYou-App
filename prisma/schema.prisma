@@ -133,3 +133,18 @@ model DailyRevenueAggregate {
   @@unique([shop, date])
   @@index([shop, date])
 }
+
+model HowDidYouHearResponse {
+  id             String   @id @default(cuid())
+  shop           String
+  orderId        String?
+  orderNumber    String?
+  selectedOption String
+  heading        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([shop, createdAt])
+  @@index([shop, selectedOption])
+  @@index([orderId])
+}

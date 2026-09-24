@@ -5,6 +5,7 @@ import {useEffect, useState} from 'preact/hooks';
 import {fetchActiveBlock} from '../../shared/blocks';
 import {claimExtensionRender} from '../../shared/render-once';
 import {trackThankYouClick} from '../../shared/analytics';
+import {apiUrls} from '../../shared/app-config';
 
 export default () => {
   try {
@@ -28,6 +29,7 @@ function Extension() {
     typeof globalThis !== 'undefined' ? globalThis.shopify : shopify;
   const orderConfirmation = extensionApi?.orderConfirmation?.current;
   const orderId = signalValue(orderConfirmation?.order?.id);
+  const orderNumber = signalValue(orderConfirmation?.number);
 
   useEffect(() => {
     // Check if customer already submitted for this order
@@ -78,18 +80,32 @@ function Extension() {
   const successMessage =
     config.successMessage?.trim() || 'Thank you for your feedback!';
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedOption || submitting) return;
 
     setSubmitting(true);
 
+    const shop = shopDomain(extensionApi?.shop);
+    const payload = {
+      shop,
+      orderId,
+      orderNumber,
+      selectedOption,
+      heading,
+    };
+
     try {
+      // 1. Save directly into HowDidYouHearResponse table via dedicated API
+      submitHowDidYouHearResponse(payload);
+
+      // 2. Also track click analytics
       trackThankYouClick('how_did_you_hear', {
         selectedOption,
         ctaText: selectedOption,
         itemTitle: heading,
       });
 
+      // 3. Save to sessionStorage to avoid duplicate submissions on page refresh
       if (orderId && typeof window !== 'undefined' && window.sessionStorage) {
         try {
           window.sessionStorage.setItem(`hdyh_${orderId}`, selectedOption);
@@ -153,6 +169,41 @@ function Extension() {
   );
 }
 
+async function submitHowDidYouHearResponse(payload) {
+  for (const url of apiUrls('/api/how-did-you-hear')) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) return data;
+    } catch (e) {
+      // try next URL
+    }
+  }
+}
+
 function signalValue(value) {
   return value?.current || value;
+}
+
+function shopDomain(shop) {
+  const values = [
+    shop?.myshopifyDomain,
+    shop?.domain,
+    shop?.storefrontUrl,
+    shop?.storefrontUrl?.current,
+  ];
+  const value = values.map(signalValue).find(Boolean);
+  if (!value) return '';
+  const text = String(value).trim();
+  try {
+    return new URL(text).hostname.toLowerCase();
+  } catch (error) {
+    return text.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
+  }
 }
