@@ -45,18 +45,6 @@ export async function action({request}) {
         },
       });
 
-    if (eventType === 'how_did_you_hear' && (ctaText || body.selectedOption)) {
-      await prisma.howDidYouHearResponse.create({
-        data: {
-          shop,
-          orderId: orderId || null,
-          orderNumber: orderNumber || null,
-          selectedOption: String(body.selectedOption || ctaText).trim(),
-          heading: String(itemTitle || body.heading || '').trim() || null,
-        },
-      }).catch((err) => console.error('Error recording in howDidYouHearResponse:', err));
-    }
-
     return responseJson({
       success: true,
       id: click.id,

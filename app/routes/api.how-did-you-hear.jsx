@@ -44,6 +44,27 @@ export async function action({request}) {
       return responseJson({success: false, message: 'selectedOption is required'}, 400);
     }
 
+    if (orderId) {
+      const existing = await prisma.howDidYouHearResponse.findFirst({
+        where: { shop, orderId },
+      });
+
+      if (existing) {
+        const updated = await prisma.howDidYouHearResponse.update({
+          where: { id: existing.id },
+          data: {
+            selectedOption,
+            heading: heading || null,
+            orderNumber: orderNumber || existing.orderNumber,
+          },
+        });
+        return responseJson({
+          success: true,
+          id: updated.id,
+        });
+      }
+    }
+
     const record = await prisma.howDidYouHearResponse.create({
       data: {
         shop,
