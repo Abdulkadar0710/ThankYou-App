@@ -22,6 +22,7 @@ export default function App() {
         <s-link href="/app/blocks">Blocks</s-link>
         <s-link href="/app/analytics">Analytics</s-link>
         <s-link href="/app/money-made">Money Made</s-link>
+        <s-link href="/app/help">Help</s-link>
       </s-app-nav>
       <Outlet />
     </AppProvider>
