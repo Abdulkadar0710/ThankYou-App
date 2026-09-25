@@ -133,67 +133,211 @@ export default function HelpPage() {
       </s-section>
 
       {/* Feature Blocks Guide */}
-      <s-section heading="Feature Blocks Guide">
+      <s-section heading="Feature Blocks Guide & Configuration Details">
         <s-stack gap="base">
+          {/* Image Block */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>How Did You Hear About Us? (Post-Purchase Survey)</s-heading>
+              <s-heading>1. Image Block</s-heading>
               <s-paragraph>
-                Collect attribution insights directly from buyers right after they
-                place an order.
+                Display custom marketing banners, brand thank-you graphics, warranty badges, or promotional images on the thank-you page.
               </s-paragraph>
-              <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
-                <li>Customize multiple-choice options (e.g. Social Media, Ads, Search Engine, Other).</li>
-                <li>Add, remove, or reorder options at any time from the block editor.</li>
-                <li>Responses are saved automatically with Order ID and customer choices.</li>
-              </ul>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> Optional title displayed above the image banner.</li>
+                    <li><strong>Image URL:</strong> Direct public link to your hosted banner or product graphic (e.g. from Shopify Files: <em>Settings &gt; Files</em>).</li>
+                    <li><strong>Image Alt Text:</strong> Descriptive accessibility text for screen readers and SEO.</li>
+                    <li><strong>Image Link (Optional):</strong> Web URL where customers will be redirected when clicking the image (e.g. your blog, VIP community, or collection).</li>
+                    <li><strong>Status:</strong> Set to <em>Active</em> to show live to shoppers, or <em>Draft</em> to hide.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
             </s-stack>
           </s-box>
 
+          {/* Video Block */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>Post-Purchase & Checkout Upsells</s-heading>
+              <s-heading>2. Video Block</s-heading>
               <s-paragraph>
-                Increase your Average Order Value (AOV) by offering complementary items
-                that customers can add to their order with a single click.
+                Embed a video message—such as a founder thank-you note, product setup tutorial, or unboxing guide—directly on the post-purchase thank-you screen.
               </s-paragraph>
-              <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
-                <li>Recommend specific products or target collections.</li>
-                <li>Real-time revenue tracking appears in the Money Made dashboard.</li>
-              </ul>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Video Title:</strong> Heading displayed above the video (e.g. <em>"A message from our founder"</em> or <em>"How to get started"</em>).</li>
+                    <li><strong>Video URL:</strong> Link to your video source (YouTube, Vimeo, or direct MP4 link).</li>
+                    <li><strong>Video Thumbnail Image URL:</strong> High-resolution cover image shown before the customer plays the video.</li>
+                    <li><strong>Status:</strong> Set to <em>Active</em> to publish or <em>Draft</em> to temporarily pause.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
             </s-stack>
           </s-box>
 
+          {/* How Did You Hear About Us? */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>Discount Code Offer</s-heading>
+              <s-heading>3. How Did You Hear About Us? (Attribution Survey)</s-heading>
               <s-paragraph>
-                Incentivize repeat business by showing an exclusive coupon code for their next purchase.
+                Collect post-purchase marketing channel feedback from buyers directly on the thank-you screen to know what channels drive real paying customers.
               </s-paragraph>
-              <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
-                <li>Customize title, description, and discount voucher code.</li>
-                <li>Includes an easy one-click copy button for shoppers.</li>
-              </ul>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> The question shown to buyers (e.g. <em>"How did you hear about us?"</em>).</li>
+                    <li><strong>Options List:</strong> Dynamic list of choices (e.g. <em>Ads</em>, <em>Social Media</em>, <em>Search Engine</em>, <em>Friend or Family</em>, <em>Other</em>). Use the <em>+ Add option</em> and <em>✕</em> buttons to customize choices.</li>
+                    <li><strong>Button Text:</strong> Label on the submission button (default: <em>Submit</em>).</li>
+                    <li><strong>Success Message:</strong> Confirmation message shown after answering (default: <em>Thank you for your feedback!</em>).</li>
+                    <li><strong>Storage:</strong> Answers are saved in your store's dedicated <code>HowDidYouHearResponse</code> database table with Order ID and customer response.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
             </s-stack>
           </s-box>
 
+          {/* Checkout & Thank You Upsells */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>FAQ Accordion</s-heading>
+              <s-heading>4. Checkout & Thank You Page Upsells</s-heading>
               <s-paragraph>
-                Reassure customers after purchase by addressing shipping times, return policies,
-                and contact instructions right on the thank-you screen.
+                Offer relevant cross-sell or upsell products that customers can add directly to their existing order without re-entering payment info.
               </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> Title like <em>"You might also like these"</em> or <em>"Exclusive Add-On"</em>.</li>
+                    <li><strong>Upsell Source:</strong> Choose between <em>Specific Products</em>, <em>Related Products</em>, or a designated <em>Collection</em>.</li>
+                    <li><strong>Max Products to Display:</strong> Number of product cards to display (1 to 4 items).</li>
+                    <li><strong>Trigger Conditions:</strong> Target all shoppers or trigger only when order contains items from specific collections or tags.</li>
+                    <li><strong>Tracking:</strong> Conversions and incremental revenue auto-sync with the <em>Money Made</em> dashboard.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
             </s-stack>
           </s-box>
 
+          {/* Discount Code */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>Free Shipping Progress Bar & Gift Options</s-heading>
+              <s-heading>5. Discount Code</s-heading>
               <s-paragraph>
-                Display remaining threshold amounts to encourage higher cart totals, and
-                allow customers to add gift wrapping or custom messages during checkout.
+                Incentivize prompt repeat purchases by offering an exclusive discount voucher on the thank-you confirmation page.
               </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Title:</strong> Header above the voucher (e.g. <em>"A gift for your next order"</em>).</li>
+                    <li><strong>Description:</strong> Instructions or terms (e.g. <em>"Use this code on your next purchase:"</em>).</li>
+                    <li><strong>Discount Code:</strong> The exact coupon code created in your Shopify Admin (e.g. <em>THANKYOU10</em>). Customers can copy it with one click.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
+
+          {/* FAQ Accordion */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>6. FAQ Accordion</s-heading>
+              <s-paragraph>
+                Reduce support tickets by answering top questions regarding order tracking, shipping windows, and return policies right after checkout.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> Section title (default: <em>"Frequently asked questions"</em>).</li>
+                    <li><strong>Accordion Items:</strong> Manage up to multiple Q&amp;A items with customizable question titles and rich answer text.</li>
+                    <li><strong>Add/Remove:</strong> Add new question cards or delete outdated ones with a single click.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
+
+          {/* Free Shipping Progress Bar */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>7. Free Shipping Progress Bar</s-heading>
+              <s-paragraph>
+                Motivate customers in checkout to add more items to reach your free shipping minimum threshold.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> Title like <em>"Free shipping"</em>.</li>
+                    <li><strong>Remaining Message:</strong> Text displayed when under threshold, using the <code>{"{amount}"}</code> placeholder (e.g. <em>"You're {"{amount}"} away from free shipping."</em>).</li>
+                    <li><strong>Success Message:</strong> Congratulations message displayed once free shipping is unlocked (e.g. <em>"You've unlocked free shipping."</em>).</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
+
+          {/* Gift Options */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>8. Gift Options (Wrap & Message)</s-heading>
+              <s-paragraph>
+                Let customers select premium gift wrapping and compose a personalized message during checkout.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Section Header:</strong> Title (default: <em>"Gift options"</em>).</li>
+                    <li><strong>Gift Wrap Checkbox:</strong> Enable or disable gift wrapping option; set custom label (e.g. <em>"Add gift wrap"</em>).</li>
+                    <li><strong>Gift Message Checkbox:</strong> Enable or disable recipient notes; set label and placeholder (e.g. <em>"Write a message for the recipient"</em>).</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
+
+          {/* Loyalty & Referral Offers */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>9. Loyalty Program & Referral Blocks</s-heading>
+              <s-paragraph>
+                Drive customer retention by inviting new buyers to sign up for rewards points or refer their friends for mutual store discounts.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Loyalty:</strong> Customize headline, points badge (e.g. <em>"2x points"</em>), promotional description, and external sign-up button URL.</li>
+                    <li><strong>Referral:</strong> Set friend reward discount (e.g. <em>"15%"</em>), advocate store credit (e.g. <em>"$10"</em>), referral promo code, and share link.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
+
+          {/* Subscription Signup */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>10. Subscription Signup</s-heading>
+              <s-paragraph>
+                Capture buyer email interest for recurring delivery subscriptions right after an order is placed.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Headline &amp; Body:</strong> Promotional pitch (e.g. <em>"Never run out again - Subscribe for 15% off recurring orders"</em>).</li>
+                    <li><strong>Input Placeholder &amp; Button:</strong> Email field placeholder and submit button label (e.g. <em>"Subscribe"</em>).</li>
+                    <li><strong>Confirmation:</strong> Success message displayed upon opt-in.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
             </s-stack>
           </s-box>
         </s-stack>
@@ -272,21 +416,6 @@ export default function HelpPage() {
         </s-stack>
       </s-section>
 
-      {/* Support Card */}
-      <s-section heading="Need Assistance?">
-        <s-box padding="base" borderWidth="base" borderRadius="base" background="subdued">
-          <s-stack gap="small">
-            <s-heading>We're here to help</s-heading>
-            <s-paragraph>
-              Have a question, need a custom block, or running into an issue? Our team is available to assist you.
-            </s-paragraph>
-            <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
-              <s-button href="/app/blocks">Manage Blocks</s-button>
-              <s-button href="/app/analytics">View Analytics</s-button>
-            </div>
-          </s-stack>
-        </s-box>
-      </s-section>
     </s-page>
   );
 }
