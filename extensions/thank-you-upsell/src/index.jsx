@@ -179,7 +179,7 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
 
   const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
   const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [addedVariantIds, setAddedVariantIds] = useState([]);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusTone, setStatusTone] = useState('info');
 
@@ -189,11 +189,36 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
     }
   }, [defaultVariantId, selectedVariantId]);
 
-  const selectedVariant = variants.find((v) => v.id === selectedVariantId) || variants[0];
+  const selectedVariant =
+    variants.find((v) => String(v.id) === String(selectedVariantId)) ||
+    variants[0];
   const displayPrice = selectedVariant?.price || product.price || '';
+  const currentVariantId =
+    selectedVariant?.id ||
+    selectedVariantId ||
+    defaultVariantId ||
+    product.variantId ||
+    product.id ||
+    '';
+
+  const isCurrentVariantAdded = addedVariantIds.some(
+    (id) => String(id) === String(currentVariantId),
+  );
+
+  const handleVariantChange = (e) => {
+    const nextVariantId = e?.target?.value || selectedVariantId;
+    setSelectedVariantId(nextVariantId);
+    if (addedVariantIds.some((id) => String(id) === String(nextVariantId))) {
+      setStatusTone('success');
+      setStatusMessage('✅ Added to your package! 0 extra shipping fee.');
+    } else {
+      setStatusMessage('');
+    }
+  };
 
   const handleAddToOrder = async () => {
     const variantToAdd =
+      selectedVariant?.id ||
       selectedVariantId ||
       defaultVariantId ||
       product.variantId ||
@@ -235,7 +260,11 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
       });
 
       if (response?.success) {
-        setAdded(true);
+        setAddedVariantIds((prev) =>
+          prev.some((id) => String(id) === String(variantToAdd))
+            ? prev
+            : [...prev, variantToAdd],
+        );
         setStatusTone('success');
         setStatusMessage('✅ Added to your package! 0 extra shipping fee.');
       } else {
@@ -279,7 +308,7 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
           <s-select
             label="Option"
             value={selectedVariantId}
-            onChange={(e) => setSelectedVariantId(e?.target?.value || selectedVariantId)}
+            onChange={handleVariantChange}
           >
             {variants.map((v) => (
               <s-option key={v.id} value={v.id}>
@@ -292,10 +321,14 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
         {statusMessage && <s-text tone={statusTone}>{statusMessage}</s-text>}
 
         <s-button
-          disabled={adding || added || timerExpired}
+          disabled={adding || isCurrentVariantAdded || timerExpired}
           onClick={handleAddToOrder}
         >
-          {added ? 'Added to Box ✓' : adding ? 'Adding to box...' : 'Add to Box (0 Shipping)'}
+          {isCurrentVariantAdded
+            ? 'Added to Box ✓'
+            : adding
+            ? 'Adding to box...'
+            : 'Add to Box (0 Shipping)'}
         </s-button>
       </s-stack>
     </s-box>
