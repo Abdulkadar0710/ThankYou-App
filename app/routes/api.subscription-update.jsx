@@ -420,6 +420,8 @@ async function updateSubscriptionContractSellingPlan(
   newSellingPlanId,
   newSellingPlanName,
 ) {
+  console.log("contractId: ", contractId);
+  console.log("contractLineId: ", contractLineId);
   // Step 1: Open draft
   const draftMutation = `
     mutation SubscriptionContractUpdate($contractId: ID!) {
