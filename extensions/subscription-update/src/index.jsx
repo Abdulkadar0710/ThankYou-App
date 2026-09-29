@@ -290,6 +290,9 @@ async function fetchSubscriptionDetails(shop, orderId, orderNumber) {
 }
 
 async function submitSubscriptionUpdate(payload) {
+
+  console.log("Payload: ", payload);
+
   for (const url of apiUrls('/api/subscription-update')) {
     try {
       const response = await fetch(url, {
