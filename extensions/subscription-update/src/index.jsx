@@ -151,6 +151,7 @@ function Extension() {
       };
 
       const result = await submitSubscriptionUpdate(payload);
+      console.log("result: ", result);
 
       if (result?.success) {
         // Update item's current plan in local state
