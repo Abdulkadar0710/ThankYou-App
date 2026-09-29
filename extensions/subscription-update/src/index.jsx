@@ -97,6 +97,9 @@ function Extension() {
   };
 
   const handleUpdate = async (item) => {
+
+    console.log("Item: ", item);
+
     const selectedPlanId = selectedPlans[item.lineItemId];
     const targetPlan = item.availablePlans.find((p) => p.id === selectedPlanId);
 
