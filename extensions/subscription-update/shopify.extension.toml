@@ -1,0 +1,15 @@
+api_version = "2026-01"
+
+[[extensions]]
+name = "Subscription Update"
+handle = "subscription-update"
+type = "ui_extension"
+uid = "b13cb8d0-9eb3-c017-e7bb-3ade6db395b96af3fd50"
+
+[[extensions.targeting]]
+module = "./src/index.jsx"
+target = "purchase.thank-you.block.render"
+
+[extensions.capabilities]
+api_access = true
+network_access = true
