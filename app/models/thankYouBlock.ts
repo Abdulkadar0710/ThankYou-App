@@ -11,6 +11,7 @@ export type ThankYouBlockType =
   | "loyalty"
   | "discount"
   | "subscription"
+  | "subscriptionUpdate"
   | "howDidYouHear";
 
 export type CheckoutUpsellProduct = {
@@ -250,6 +251,18 @@ export const blockTemplates = {
       successMessage: "Thank you for your feedback!",
     },
   },
+  subscriptionUpdate: {
+    type: "subscriptionUpdate",
+    title: "Subscription Frequency Update",
+    description: "Allow customers to update or change their subscription delivery frequency.",
+    defaultName: "Subscription Frequency Update",
+    defaultConfig: {
+      heading: "Subscription Schedule",
+      description: "Need to change how often your order arrives? Select an available delivery frequency below.",
+      buttonText: "Update Subscription",
+      successMessage: "Your subscription plan has been updated successfully!",
+    },
+  },
 } as const;
 
 export function isBlockType(value: unknown): value is ThankYouBlockType {
@@ -266,6 +279,7 @@ export function isBlockType(value: unknown): value is ThankYouBlockType {
     value === "loyalty" ||
     value === "discount" ||
     value === "subscription" ||
+    value === "subscriptionUpdate" ||
     value === "howDidYouHear"
   );
 }
