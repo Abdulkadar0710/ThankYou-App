@@ -104,6 +104,8 @@ export async function loader({request}) {
     // Look for any subscription contracts linked to this order or customer
     const contracts = await findSubscriptionContracts(admin, normalizedOrderId, customerId);
 
+    console.log("Contracts: ", contracts);
+
     const items = [];
     const lineItems = order.lineItems?.nodes || [];
 
