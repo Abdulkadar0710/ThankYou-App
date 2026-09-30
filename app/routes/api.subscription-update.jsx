@@ -26,6 +26,9 @@ function json(data, init = {}) {
 }
 
 export async function loader({request}) {
+
+  console.log("Loader request: ");
+
   if (request.method === 'OPTIONS') {
     return cors(new Response(null, {status: 204}));
   }
