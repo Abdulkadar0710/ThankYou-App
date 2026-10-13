@@ -133,10 +133,6 @@ export async function loader({request}) {
 
       const availablePlans = Array.from(availablePlansMap.values());
 
-      // If the line item has a selling plan or the product offers subscription plans
-      const currentPlanId = item.sellingPlan?.sellingPlanId || (availablePlans[0]?.id || '');
-      const currentPlanName = item.sellingPlan?.name || (availablePlans[0]?.name || 'Standard Plan');
-
       // Check if there is an active subscription contract line for this product
       let matchingContract = null;
       let matchingContractLine = null;
@@ -151,23 +147,29 @@ export async function loader({request}) {
         }
       }
 
-      // Include this item if it has an active subscription or multiple plans available
-      if (item.sellingPlan || matchingContract || availablePlans.length > 0) {
-        items.push({
-          lineItemId: item.id,
-          productId: product?.id || '',
-          productTitle: item.title || product?.title || 'Subscription Item',
-          variantId: item.variant?.id || '',
-          variantTitle: item.variant?.title || '',
-          currentSellingPlan: {
-            id: matchingContractLine?.sellingPlanId || currentPlanId,
-            name: matchingContractLine?.sellingPlanName || currentPlanName,
-          },
-          contractId: matchingContract?.id || null,
-          contractLineId: matchingContractLine?.id || null,
-          availablePlans,
-        });
+      // Only include this item if it has an actual subscription attached
+      const hasSubscription = Boolean(item.sellingPlan || matchingContract);
+      if (!hasSubscription) {
+        continue;
       }
+
+      const currentPlanId = matchingContractLine?.sellingPlanId || item.sellingPlan?.sellingPlanId || '';
+      const currentPlanName = matchingContractLine?.sellingPlanName || item.sellingPlan?.name || 'Subscription Plan';
+
+      items.push({
+        lineItemId: item.id,
+        productId: product?.id || '',
+        productTitle: item.title || product?.title || 'Subscription Item',
+        variantId: item.variant?.id || '',
+        variantTitle: item.variant?.title || '',
+        currentSellingPlan: {
+          id: currentPlanId,
+          name: currentPlanName,
+        },
+        contractId: matchingContract?.id || null,
+        contractLineId: matchingContractLine?.id || null,
+        availablePlans,
+      });
     }
 
     return json({
