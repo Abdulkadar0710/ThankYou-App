@@ -2,7 +2,7 @@
 
 client_id = "adba87c40b9eb8f83be162d3d6bde96a"
 name = "Thank You App"
-application_url = "https://thankyou-app-production.up.railway.app"
+application_url = "https://thankyou-app-production-5ad4.up.railway.app"
 embedded = true
 
 [build]
@@ -29,8 +29,8 @@ scopes = "read_customers,write_customers,read_orders,write_orders,read_order_edi
 
 [auth]
 redirect_urls = [
-  "https://thankyou-app-production.up.railway.app/auth/callback",
-  "https://thankyou-app-production.up.railway.app/auth/shopify/callback"
+  "https://thankyou-app-production-5ad4.up.railway.app/auth/callback",
+  "https://thankyou-app-production-5ad4.up.railway.app/auth/shopify/callback"
 ]
 
 [product.metafields.app.demo_info]
