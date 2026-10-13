@@ -150,7 +150,6 @@ export default function AnalyticsPage() {
                           ""
                         }
                         target="_blank"
-                        rel="noopener noreferrer"
                       >
                         Open link
                       </s-link>

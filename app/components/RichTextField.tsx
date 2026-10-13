@@ -124,7 +124,7 @@ export default function RichTextField({
   useEffect(() => {
     if (!editor) return;
 
-    editor.commands.setContent(getInitialContent(value), false);
+    editor.commands.setContent(getInitialContent(value), { emitUpdate: false });
     setJson(editorToJson(editor));
   }, [editor, value]);
 

@@ -308,7 +308,7 @@ export default function MoneyMadePage() {
         >
           <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px"}}>
             <div>
-              <div style={{fontSize: "13px", textTransform: "uppercase", tracking: "0.05em", color: "#94a3b8", fontWeight: 650}}>
+              <div style={{fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8", fontWeight: 650}}>
                 Total Additional Revenue Generated (Live)
               </div>
               <div style={{fontSize: "36px", fontWeight: 800, margin: "4px 0", color: "#38bdf8"}}>
@@ -394,7 +394,7 @@ export default function MoneyMadePage() {
               <div
                 style={{
                   display: "flex",
-                  justify: "space-between",
+                  justifyContent: "space-between",
                   alignItems: "center",
                   padding: "12px 16px",
                   borderTop: "1px solid #e2e8f0",
