@@ -1,4 +1,4 @@
-/* global globalThis */
+/* global globalThis, shopify */
 /* eslint react/prop-types: off */
 import '@shopify/ui-extensions/preact';
 import {render} from 'preact';
@@ -6,6 +6,7 @@ import {useEffect, useState} from 'preact/hooks';
 import {fetchActiveBlock} from '../../shared/blocks';
 import {claimExtensionRender} from '../../shared/render-once';
 import {limitText, trimText} from '../../shared/text';
+import {apiUrls} from '../../shared/app-config';
 
 export default () => {
   try {
@@ -20,9 +21,14 @@ export default () => {
 function Extension() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [threshold, setThreshold] = useState(null);
+  const [thresholdLoading, setThresholdLoading] = useState(true);
+
   const api = extensionApi();
   const subtotal = useSignalValue(api?.cost?.subtotalAmount);
   const totalShipping = useSignalValue(api?.cost?.totalShippingAmount);
+  const deliveryGroups = useSignalValue(api?.deliveryGroups);
+  const shippingAddress = useSignalValue(api?.shippingAddress);
 
   useEffect(() => {
     let mounted = true;
@@ -30,11 +36,9 @@ function Extension() {
     async function loadBlock() {
       try {
         const block = await fetchActiveBlock('freeShippingProgress');
-
         if (mounted) setConfig(block?.config || null);
       } catch (error) {
         console.error(error);
-
         if (mounted) setConfig(null);
       } finally {
         if (mounted) setLoading(false);
@@ -48,22 +52,77 @@ function Extension() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <s-box padding="base" border="base" borderRadius="base">
-        <s-skeleton-paragraph />
-      </s-box>
-    );
-  }
+  const activeGroup = deliveryGroups?.[0];
+  const selectedOptionHandle = activeGroup?.selectedDeliveryOption?.handle;
+  const selectedOption = activeGroup?.deliveryOptions?.find(
+    (opt) => opt.handle === selectedOptionHandle,
+  );
+  const selectedMethodTitle = selectedOption?.title || '';
+  const countryCode =
+    shippingAddress?.countryCode ||
+    activeGroup?.deliveryAddress?.countryCode ||
+    '';
+  const provinceCode =
+    shippingAddress?.provinceCode ||
+    shippingAddress?.province ||
+    activeGroup?.deliveryAddress?.provinceCode ||
+    '';
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadThreshold() {
+      setThresholdLoading(true);
+      const shops = shopCandidates(api);
+      const shop = shops[0] || '';
+
+      if (!shop) {
+        if (mounted) {
+          setThreshold(null);
+          setThresholdLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const val = await fetchShippingThreshold({
+          shop,
+          methodName: selectedMethodTitle,
+          countryCode,
+          provinceCode,
+        });
+
+        if (mounted) {
+          setThreshold(val);
+        }
+      } catch (err) {
+        if (mounted) {
+          setThreshold(null);
+        }
+      } finally {
+        if (mounted) {
+          setThresholdLoading(false);
+        }
+      }
+    }
+
+    loadThreshold();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedMethodTitle, countryCode, provinceCode]);
+
+  if (loading || thresholdLoading) return null;
   if (!config) return null;
+
+  // Do not add any fallback price: only show if an accurate min price required to unlock free delivery exists
+  if (threshold === null || !Number.isFinite(threshold) || threshold <= 0) {
+    return null;
+  }
 
   const currentAmount = Math.max(0, Number(subtotal?.amount) || 0);
   const shippingAmount = Number(totalShipping?.amount);
-  const threshold = Number(2000); 
-
-  if (!Number.isFinite(threshold) || threshold < 0) return null;
-
   const currencyCode = totalShipping?.currencyCode || subtotal?.currencyCode || '';
   const remaining = Math.max(0, threshold - currentAmount);
 
@@ -100,6 +159,60 @@ function Extension() {
   );
 }
 
+async function fetchShippingThreshold({shop, methodName, countryCode, provinceCode}) {
+  const params = new URLSearchParams({shop});
+  if (methodName) params.set('methodName', methodName);
+  if (countryCode) params.set('countryCode', countryCode);
+  if (provinceCode) params.set('provinceCode', provinceCode);
+
+  const urls = apiUrls(`/api/shipping-threshold?${params.toString()}`);
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url);
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) {
+        return data.threshold !== undefined && data.threshold !== null
+          ? Number(data.threshold)
+          : null;
+      }
+    } catch (e) {
+      // try next url
+    }
+  }
+
+  return null;
+}
+
+function shopCandidates(extensionApi) {
+  const shop = extensionApi?.shop || {};
+  const values = [
+    shop.myshopifyDomain,
+    shop.domain,
+    shop.storefrontUrl,
+    shop.storefrontUrl?.current,
+  ];
+
+  return values
+    .map(normalizeShop)
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index);
+}
+
+function normalizeShop(value) {
+  if (!value) return '';
+  const text = String(value).trim();
+  if (!text) return '';
+  try {
+    return new URL(text).hostname.toLowerCase();
+  } catch (error) {
+    return text
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .toLowerCase();
+  }
+}
+
 function useSignalValue(signal) {
   const [value, setValue] = useState(signalValue(signal));
 
@@ -125,7 +238,11 @@ function signalValue(signal) {
 }
 
 function extensionApi() {
-  return typeof globalThis !== 'undefined' ? globalThis.shopify : shopify;
+  return typeof globalThis !== 'undefined' && globalThis.shopify
+    ? globalThis.shopify
+    : typeof shopify !== 'undefined'
+    ? shopify
+    : undefined;
 }
 
 function formatMoney(value) {
