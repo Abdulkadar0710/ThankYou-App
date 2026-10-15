@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Links,
   Meta,
@@ -9,6 +10,31 @@ import {
 } from "react-router";
 
 export default function App() {
+  useEffect(() => {
+    if (document.getElementById("tawk-to-script")) return;
+
+    const win = window as unknown as {
+      Tawk_API?: Record<string, unknown>;
+      Tawk_LoadStart?: Date;
+    };
+    win.Tawk_API = win.Tawk_API || {};
+    win.Tawk_LoadStart = new Date();
+
+    const s1 = document.createElement("script");
+    s1.id = "tawk-to-script";
+    s1.async = true;
+    s1.src = "https://embed.tawk.to/6ad08d5283745634c605f52f/1k4vag3mn";
+    s1.charset = "UTF-8";
+    s1.setAttribute("crossorigin", "*");
+
+    const s0 = document.getElementsByTagName("script")[0];
+    if (s0 && s0.parentNode) {
+      s0.parentNode.insertBefore(s1, s0);
+    } else {
+      document.head.appendChild(s1);
+    }
+  }, []);
+
   return (
     <html lang="en">
       <head>
