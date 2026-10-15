@@ -1,5 +1,7 @@
 /* eslint-env node */
 import {unauthenticated} from '../shopify.server';
+import {getActiveBlock} from '../models/thankYouBlock.server';
+import {parseBlockConfig} from '../models/thankYouBlock';
 
 // In-memory cache for delivery profiles by shop
 const cache = new Map();
@@ -97,35 +99,60 @@ export async function loader({request}) {
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       profilesData = cached.data;
     } else {
-      const {admin} = await unauthenticated.admin(shop);
-      const res = await admin.graphql(DELIVERY_PROFILES_QUERY);
-      const json = await res.json();
-      profilesData = json?.data;
-      if (profilesData) {
-        cache.set(shop, {data: profilesData, timestamp: Date.now()});
+      try {
+        const {admin} = await unauthenticated.admin(shop);
+        const res = await admin.graphql(DELIVERY_PROFILES_QUERY);
+        const json = await res.json();
+        profilesData = json?.data;
+        if (profilesData) {
+          cache.set(shop, {data: profilesData, timestamp: Date.now()});
+        }
+      } catch (gqlErr) {
+        console.warn('Admin deliveryProfiles query failed, falling back to configured block rules:', gqlErr?.message || gqlErr);
       }
     }
 
-    if (!profilesData) {
-      return responseJson({
-        success: false,
-        threshold: null,
-        message: 'Could not fetch delivery profiles',
+    if (profilesData) {
+      const result = findFreeShippingThreshold(profilesData, {
+        methodName,
+        countryCode,
+        provinceCode,
       });
+
+      if (result.threshold !== null) {
+        return responseJson({
+          success: true,
+          threshold: result.threshold,
+          currencyCode: result.currencyCode,
+          methodName: result.matchedMethodName,
+          zoneName: result.matchedZoneName,
+        });
+      }
     }
 
-    const result = findFreeShippingThreshold(profilesData, {
-      methodName,
-      countryCode,
-      provinceCode,
-    });
+    // Fallback to active block's configured method rules if deliveryProfiles GQL is restricted
+    const activeBlock = await getActiveBlock(shop, 'freeShippingProgress');
+    if (activeBlock?.config) {
+      const config = parseBlockConfig(activeBlock.config);
+      const ruleThreshold = parseMethodRuleThreshold(config.freeShippingMethodRules, methodName);
+      const threshold = ruleThreshold || (Number(config.freeShippingThreshold) > 0 ? Number(config.freeShippingThreshold) : null);
+
+      if (threshold !== null) {
+        return responseJson({
+          success: true,
+          threshold,
+          currencyCode: null,
+          methodName: methodName || null,
+          source: 'blockConfig',
+        });
+      }
+    }
 
     return responseJson({
       success: true,
-      threshold: result.threshold,
-      currencyCode: result.currencyCode,
-      methodName: result.matchedMethodName,
-      zoneName: result.matchedZoneName,
+      threshold: null,
+      currencyCode: null,
+      methodName: methodName || null,
     });
   } catch (err) {
     console.error('Error fetching shipping threshold:', err);
@@ -238,6 +265,26 @@ function findFreeShippingThreshold(profilesData, {methodName, countryCode, provi
     matchedMethodName,
     matchedZoneName,
   };
+}
+
+function parseMethodRuleThreshold(rulesText, methodName) {
+  if (!rulesText || typeof rulesText !== 'string') return null;
+  const lines = rulesText.split('\n');
+  const target = (methodName || '').trim().toLowerCase();
+
+  for (const line of lines) {
+    const parts = line.split(':');
+    if (parts.length >= 2) {
+      const name = parts[0].trim().toLowerCase();
+      const amount = parseFloat(parts[1].trim());
+      if (Number.isFinite(amount) && amount > 0) {
+        if (!target || target.includes(name) || name.includes(target)) {
+          return amount;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 function normalizeShop(value) {

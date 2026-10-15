@@ -15,7 +15,7 @@ const SHOPIFY_APP_URL =
 
 const SCOPES =
   process.env.SCOPES ||
-  "read_customers,write_customers,read_orders,read_products,write_discounts,write_metaobject_definitions,write_metaobjects,write_products";
+  "read_customers,write_customers,read_orders,read_products,write_discounts,write_metaobject_definitions,write_metaobjects,write_products,read_shipping";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,

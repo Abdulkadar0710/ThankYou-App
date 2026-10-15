@@ -21,8 +21,7 @@ export default () => {
 function Extension() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [threshold, setThreshold] = useState(null);
-  const [thresholdLoading, setThresholdLoading] = useState(true);
+  const [liveThreshold, setLiveThreshold] = useState(null);
 
   const api = extensionApi();
   const subtotal = useSignalValue(api?.cost?.subtotalAmount);
@@ -68,21 +67,15 @@ function Extension() {
     activeGroup?.deliveryAddress?.provinceCode ||
     '';
 
+  // Live threshold lookup from Admin API
   useEffect(() => {
     let mounted = true;
 
     async function loadThreshold() {
-      setThresholdLoading(true);
       const shops = shopCandidates(api);
       const shop = shops[0] || '';
 
-      if (!shop) {
-        if (mounted) {
-          setThreshold(null);
-          setThresholdLoading(false);
-        }
-        return;
-      }
+      if (!shop) return;
 
       try {
         const val = await fetchShippingThreshold({
@@ -92,17 +85,11 @@ function Extension() {
           provinceCode,
         });
 
-        if (mounted) {
-          setThreshold(val);
+        if (mounted && val !== null && Number.isFinite(val) && val > 0) {
+          setLiveThreshold(val);
         }
       } catch (err) {
-        if (mounted) {
-          setThreshold(null);
-        }
-      } finally {
-        if (mounted) {
-          setThresholdLoading(false);
-        }
+        // keep existing threshold
       }
     }
 
@@ -113,35 +100,63 @@ function Extension() {
     };
   }, [selectedMethodTitle, countryCode, provinceCode]);
 
-  if (loading || thresholdLoading) return null;
+  if (loading) return null;
   if (!config) return null;
-
-  // Do not add any fallback price: only show if an accurate min price required to unlock free delivery exists
-  if (threshold === null || !Number.isFinite(threshold) || threshold <= 0) {
-    return null;
-  }
 
   const currentAmount = Math.max(0, Number(subtotal?.amount) || 0);
   const shippingAmount = Number(totalShipping?.amount);
   const currencyCode = totalShipping?.currencyCode || subtotal?.currencyCode || '';
-  const remaining = Math.max(0, threshold - currentAmount);
 
-  // Hide the free shipping block if free shipping is unlocked but the buyer selects a shipping option with extra cost (e.g., Standard $9.67)
-  if (remaining <= 0 && Number.isFinite(shippingAmount) && shippingAmount > 0) {
+  // Check if free shipping is already selected/active
+  const isCurrentlyFree =
+    Number.isFinite(shippingAmount) &&
+    shippingAmount === 0 &&
+    (selectedMethodTitle.toLowerCase().includes('free') ||
+      Number(selectedOption?.cost?.amount) === 0 ||
+      totalShipping?.amount === '0.00');
+
+  // Resolve threshold:
+  // 1. Live GraphQL threshold from deliveryProfiles matching method & zone
+  // 2. Or accurate rule for currently selected method from block config
+  // 3. Or default threshold configured on block
+  const configMethodThreshold = parseMethodRuleThreshold(
+    config.freeShippingMethodRules,
+    selectedMethodTitle,
+  );
+  const fallbackConfigThreshold = Number(config.freeShippingThreshold) > 0
+    ? Number(config.freeShippingThreshold)
+    : null;
+
+  const resolvedThreshold =
+    liveThreshold || configMethodThreshold || fallbackConfigThreshold;
+
+  // If free shipping is not currently selected and no threshold exists for this method, don't show
+  if (!isCurrentlyFree && (!resolvedThreshold || resolvedThreshold <= 0)) {
     return null;
   }
 
-  const progress =
-    threshold > 0
-      ? Math.max(0, Math.min(100, (currentAmount / threshold) * 100))
-      : 100;
+  const remaining = isCurrentlyFree
+    ? 0
+    : Math.max(0, (resolvedThreshold || 0) - currentAmount);
+
+  // If unlocked by amount but buyer chose an extra paid shipping option, hide
+  if (!isCurrentlyFree && remaining <= 0 && Number.isFinite(shippingAmount) && shippingAmount > 0) {
+    return null;
+  }
+
+  const progress = isCurrentlyFree || remaining <= 0
+    ? 100
+    : resolvedThreshold && resolvedThreshold > 0
+    ? Math.max(0, Math.min(100, (currentAmount / resolvedThreshold) * 100))
+    : 100;
+
   const amount = formatMoney({amount: remaining, currencyCode});
   const heading = limitText(
     trimText(config.freeShippingHeading) || 'Free shipping',
     80,
   );
   const message =
-    remaining <= 0
+    isCurrentlyFree || remaining <= 0
       ? trimText(config.freeShippingSuccessMessage) ||
         "You've unlocked free shipping."
       : (trimText(config.freeShippingRemainingMessage) ||
@@ -157,6 +172,26 @@ function Extension() {
       <s-progress value={progress} max={100} />
     </s-stack>
   );
+}
+
+function parseMethodRuleThreshold(rulesText, methodName) {
+  if (!rulesText || typeof rulesText !== 'string') return null;
+  const lines = rulesText.split('\n');
+  const target = (methodName || '').trim().toLowerCase();
+
+  for (const line of lines) {
+    const parts = line.split(':');
+    if (parts.length >= 2) {
+      const name = parts[0].trim().toLowerCase();
+      const amount = parseFloat(parts[1].trim());
+      if (Number.isFinite(amount) && amount > 0) {
+        if (!target || target.includes(name) || name.includes(target)) {
+          return amount;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 async function fetchShippingThreshold({shop, methodName, countryCode, provinceCode}) {
