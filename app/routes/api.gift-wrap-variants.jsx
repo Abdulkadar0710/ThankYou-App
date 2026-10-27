@@ -1,8 +1,6 @@
 /* eslint-env node */
 import {unauthenticated} from '../shopify.server';
 
-const GIFT_WRAP_PRODUCT_ID = 'gid://shopify/Product/8283468398681';
-
 export async function loader({request}) {
   const url = new URL(request.url);
   const shop = normalizeShop(url.searchParams.get('shop') || '');
@@ -16,30 +14,31 @@ export async function loader({request}) {
 
     const data = await admin.graphql(
       `
-        query GetGiftWrapVariants($id: ID!) {
-          product(id: $id) {
-            id
-            title
-            variants(first: 20) {
-              nodes {
-                id
-                title
-                price
-                availableForSale
-                image {
-                  url
-                  altText
+        query GetGiftWrapProduct {
+          products(first: 1, query: "title:'Gift Wrapping'") {
+            nodes {
+              id
+              title
+              variants(first: 20) {
+                nodes {
+                  id
+                  title
+                  price
+                  availableForSale
+                  image {
+                    url
+                    altText
+                  }
                 }
               }
             }
           }
         }
       `,
-      {variables: {id: GIFT_WRAP_PRODUCT_ID}},
     );
 
     const json = await data.json();
-    const product = json?.data?.product;
+    const product = json?.data?.products?.nodes?.[0];
 
     if (!product) {
       return responseJson({success: false, variants: [], message: 'Gift wrap product not found'});

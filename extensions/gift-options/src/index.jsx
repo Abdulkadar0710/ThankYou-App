@@ -301,7 +301,7 @@ function Extension() {
             <s-text tone="critical">No gift wrap styles available.</s-text>
           ) : (
             <s-stack gap="small">
-              <s-text>Choose a gift wrap style:</s-text>
+              <s-text>Select a gift wrap style:</s-text>
 
               <s-select
                 label="Gift wrap style"
