@@ -59,6 +59,28 @@ function Extension() {
 
   if (!discountCode) return null;
 
+  const handleCopy = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(discountCode);
+      } else if (typeof document !== 'undefined') {
+        const textArea = document.createElement('textarea');
+        textArea.value = discountCode;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy discount code:', err);
+    }
+  };
+
   return (
     <s-box padding="base" border="base" borderRadius="base">
       <s-stack gap="small">
@@ -68,9 +90,17 @@ function Extension() {
           {description}
         </s-text>
 
-        <s-box padding="small" border="base" borderRadius="base">
-          <s-text type="strong">{discountCode}</s-text>
-        </s-box>
+        <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="center">
+          <s-box padding="small" border="base" borderRadius="base">
+            <s-text type="strong">{discountCode}</s-text>
+          </s-box>
+          <s-button
+            onClick={handleCopy}
+            accessibilityLabel="Copy discount code"
+          >
+            {copied ? 'Copied!' : 'Copy code'}
+          </s-button>
+        </s-grid>
       </s-stack>
     </s-box>
   );

@@ -58,9 +58,9 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
    - **Location**: [extensions/free-shipping-progress/src/index.jsx:L126](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/free-shipping-progress/src/index.jsx#L126) and [api.shipping-threshold.jsx:L138](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/api.shipping-threshold.jsx#L138)
    - **Unfinished**: The extension and backend API both contain fallback logic expecting `config.freeShippingThreshold` and `config.freeShippingMethodRules`. However, the Admin Editor (`FreeShippingProgressFields`) has **no input fields** for threshold or shipping method rules, and `thankYouBlock.ts` does not parse them.
 
-4. **Discount Code "Click to Copy" Unfinished**
-   - **Location**: [extensions/thank-you-discount/src/index.jsx:L22](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-discount/src/index.jsx#L22)
-   - **Unfinished**: `const [copied, setCopied] = useState(false);` is defined, but neither is ever used. There is no copy-to-clipboard button or click event, despite [app.help.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.help.tsx#L238) stating _"Customers can copy it with one click."_
+4. **Discount Code "Click to Copy" Unfinished** `[FIXED]`
+   - **Location**: [extensions/thank-you-discount/src/index.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-discount/src/index.jsx)
+   - **Status**: Fixed. Added an interactive `<s-button>` with a `handleCopy` handler using `navigator.clipboard.writeText` and fallback. Connected `copied` state to toggle button text between "Copy code" and "Copied!" for 2 seconds. Also added discount code preview to `BlockPreview` in [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx).
 
 5. **Unused Prisma Model `DailyRevenueAggregate`**
    - **Location**: [prisma/schema.prisma:L116-L135](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma#L116-L135)

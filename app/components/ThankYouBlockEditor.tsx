@@ -1363,6 +1363,23 @@ function BlockPreview({
   type: ThankYouBlockType;
   config: ThankYouBlockConfig;
 }) {
+  if (type === "discount") {
+    return (
+      <s-box padding="base" borderWidth="base" borderRadius="base">
+        <s-stack gap="small">
+          <s-text type="strong">{config.title || "Discount code"}</s-text>
+          <s-text>{config.description || "Use this code on your next purchase:"}</s-text>
+          <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="center">
+            <s-box padding="small" borderWidth="base" borderRadius="base">
+              <s-text type="strong">{config.discountCode || "THANKYOU10"}</s-text>
+            </s-box>
+            <s-button variant="secondary">Copy code</s-button>
+          </s-grid>
+        </s-stack>
+      </s-box>
+    );
+  }
+
   if (type === "loyalty") {
     return (
       <s-box padding="base" borderWidth="base" borderRadius="base">
