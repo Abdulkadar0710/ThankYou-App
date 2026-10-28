@@ -706,7 +706,9 @@ function MediaFields({
             style={fieldStyle}
             required
           />
-          <text>Enter a valid video URL (YouTube, Vimeo, MP4, or other supported video link). The video will open in a new browser tab when customers click the link.</text>
+          <s-text color="subdued">
+            Enter a valid video URL (YouTube, Vimeo, MP4, or other supported video link). The video will open in a new browser tab when customers click the link.
+          </s-text>
           <ImageSourceField
             label="Thumbnail Image (URL or Upload)"
             name="videoThumbnail"
@@ -793,7 +795,9 @@ function ImageSourceField({
       <label style={labelStyle} htmlFor={name}>
         {label}
       </label>
-      <text>Upload an image here or provide a publicly accessible image URL or upload an image to Shopify Files (Content → Files) and use its URL here.</text>
+      <s-text color="subdued">
+        Upload an image here or provide a publicly accessible image URL or upload an image to Shopify Files (Content → Files) and use its URL here.
+      </s-text>
          
       <input
         id={name}
@@ -1508,7 +1512,7 @@ function UpsellFields({config}: {config: ThankYouBlockConfig}) {
         <input
           defaultValue={config.upsellHeading || "Recommended products"}
           id="upsellHeading"
-          width={70}
+          maxLength={80}
           name="upsellHeading"
           style={fieldStyle}
           required

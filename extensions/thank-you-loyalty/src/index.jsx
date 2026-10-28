@@ -127,11 +127,13 @@ function Extension() {
 
 
 function replaceReferralVariables(value, config) {
+  if (typeof value !== 'string') return '';
+  const cfg = config || {};
   return value
-    .replaceAll('{friend_reward}', trimText(config.friendReward) || '15%')
-    .replaceAll('{advocate_reward}', trimText(config.advocateReward) || '$10')
-    .replaceAll('{referral_code}', trimText(config.referralCode) || 'THANKYOU15')
-    .replaceAll('{referral_link}', trimText(config.referralLink));
+    .replaceAll('{friend_reward}', trimText(cfg.friendReward) || '15%')
+    .replaceAll('{advocate_reward}', trimText(cfg.advocateReward) || '$10')
+    .replaceAll('{referral_code}', trimText(cfg.referralCode) || 'THANKYOU15')
+    .replaceAll('{referral_link}', trimText(cfg.referralLink) || '');
 }
 
 function parseRichText(value) {

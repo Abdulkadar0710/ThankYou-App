@@ -195,7 +195,7 @@ function TemplatePreview({ type }: { type: string }) {
     faq: "/faq-preview.png",
     image: "/image-preview.png",
     video: "/video-preview.png",
-    media: "media-preview.png",
+    media: "/image-preview.png",
     referral: "/referral-preview.png",
     loyalty: "/loyalty-preview.png",
     discount: "/discount-preview.png",
