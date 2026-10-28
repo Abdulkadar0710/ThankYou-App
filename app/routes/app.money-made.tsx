@@ -204,12 +204,12 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   const repeatPurchaseRate =
     totalCustomers > 0
       ? ((repeatCustomers / totalCustomers) * 100).toFixed(1)
-      : (38.4).toFixed(1);
+      : "0.0";
 
   const churnRate =
     totalSubscribers > 0
       ? ((cancelledSubscribers / totalSubscribers) * 100).toFixed(1)
-      : (3.2).toFixed(1);
+      : "0.0";
 
   // 4. Fetch recent customer repeat purchases
   const repeatPurchaseLogs = await prisma.customerRetentionLog.findMany({
@@ -218,24 +218,16 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
     take: 10,
   });
 
-  const hasLiveData = totalConversionsCount > 0;
-
-  const finalOneClick = hasLiveData ? oneClickRevenue : 2480.0;
-  const finalDiscount = hasLiveData ? discountRevenue : 680.0;
-  const finalGiftWrap = hasLiveData ? giftWrapRevenue : 145.0;
-  const finalTotalRevenue = finalOneClick + finalDiscount + finalGiftWrap;
-  const finalShippingSaved = hasLiveData ? totalShippingFeeSaved : 353.41;
-
   return {
     shop,
     page,
     totalPages,
-    totalConversionsCount: hasLiveData ? totalConversionsCount : 15,
-    totalRevenueAdded: finalTotalRevenue,
-    oneClickRevenue: finalOneClick,
-    discountRevenue: finalDiscount,
-    giftWrapRevenue: finalGiftWrap,
-    totalShippingFeeSaved: finalShippingSaved,
+    totalConversionsCount,
+    totalRevenueAdded,
+    oneClickRevenue,
+    discountRevenue,
+    giftWrapRevenue,
+    totalShippingFeeSaved,
     repeatPurchaseRate,
     churnRate,
     oneClickCount,
@@ -319,6 +311,24 @@ export default function MoneyMadePage() {
               </div>
             </div>
 
+            <div style={{display: "flex", gap: "16px", flexWrap: "wrap"}}>
+              <div style={{background: "rgba(255, 255, 255, 0.08)", padding: "12px 18px", borderRadius: "10px", minWidth: "140px"}}>
+                <div style={{fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 600}}>
+                  Shipping Fees Saved
+                </div>
+                <div style={{fontSize: "20px", fontWeight: 700, color: "#4ade80", marginTop: "2px"}}>
+                  ${totalShippingFeeSaved.toFixed(2)}
+                </div>
+              </div>
+              <div style={{background: "rgba(255, 255, 255, 0.08)", padding: "12px 18px", borderRadius: "10px", minWidth: "140px"}}>
+                <div style={{fontSize: "12px", color: "#94a3b8", textTransform: "uppercase", fontWeight: 600}}>
+                  Repeat Purchase Rate
+                </div>
+                <div style={{fontSize: "20px", fontWeight: 700, color: "#38bdf8", marginTop: "2px"}}>
+                  {repeatPurchaseRate}%
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -429,39 +439,71 @@ export default function MoneyMadePage() {
               </div>
             </s-box>
           ) : (
-            <s-table>
-              <s-table-header-row>
-                <s-table-header listSlot="primary">Order</s-table-header>
-                <s-table-header>Feature</s-table-header>
-                <s-table-header>Item Added</s-table-header>
-                <s-table-header format="numeric">Revenue Added</s-table-header>
-                <s-table-header>Extra Shipping Fee</s-table-header>
-                <s-table-header>Status</s-table-header>
-              </s-table-header-row>
-              <s-table-body>
-                <s-table-row>
-                  <s-table-cell>#1042</s-table-cell>
-                  <s-table-cell>📦 1-Click Upsell</s-table-cell>
-                  <s-table-cell>Coffee Beans (250g)</s-table-cell>
-                  <s-table-cell>$12.00</s-table-cell>
-                  <s-table-cell>$0.00 (Same Box)</s-table-cell>
-                  <s-table-cell>Appended to Order</s-table-cell>
-                </s-table-row>
-                <s-table-row>
-                  <s-table-cell>#1041</s-table-cell>
-                  <s-table-cell>📦 1-Click Upsell</s-table-cell>
-                  <s-table-cell>Advanced Hair Growth Bundle</s-table-cell>
-                  <s-table-cell>$129.00</s-table-cell>
-                  <s-table-cell>$0.00 (Same Box)</s-table-cell>
-                  <s-table-cell>Appended to Order</s-table-cell>
-                </s-table-row>
-              </s-table-body>
-            </s-table>
+            <s-box padding="base" borderWidth="base" borderRadius="base">
+              <div style={{textAlign: "center", padding: "32px 16px"}}>
+                <div style={{fontSize: "36px", marginBottom: "8px"}}>🛍️</div>
+                <div style={{fontSize: "16px", fontWeight: 600, marginBottom: "4px"}}>
+                  No conversions recorded yet
+                </div>
+                <s-text color="subdued">
+                  When customers accept 1-click upsells, redeem thank-you discounts, or add gift wrap at checkout, their orders and added revenue will appear here automatically.
+                </s-text>
+              </div>
+            </s-box>
+          )}
+        </s-section>
+
+        {/* Repeat Customer Activity */}
+        <s-section heading="Repeat Customer Purchases">
+          {repeatLogs.length ? (
+            <s-box padding="none">
+              <s-table>
+                <s-table-header-row>
+                  <s-table-header listSlot="primary">Customer</s-table-header>
+                  <s-table-header format="numeric">Total Orders</s-table-header>
+                  <s-table-header format="numeric">Total Spend (LTV)</s-table-header>
+                  <s-table-header>Last Purchase Date</s-table-header>
+                </s-table-header-row>
+                <s-table-body>
+                  {repeatLogs.map((log) => (
+                    <s-table-row key={log.id}>
+                      <s-table-cell>{log.customerEmail || shortGid(log.customerId)}</s-table-cell>
+                      <s-table-cell>{log.totalOrdersCount}</s-table-cell>
+                      <s-table-cell>${log.totalLifetimeValue.toFixed(2)}</s-table-cell>
+                      <s-table-cell>{formatDate(log.lastPurchaseDate)}</s-table-cell>
+                    </s-table-row>
+                  ))}
+                </s-table-body>
+              </s-table>
+            </s-box>
+          ) : (
+            <s-box padding="base" borderWidth="base" borderRadius="base">
+              <div style={{textAlign: "center", padding: "28px 16px"}}>
+                <div style={{fontSize: "32px", marginBottom: "8px"}}>🔄</div>
+                <div style={{fontSize: "15px", fontWeight: 600, marginBottom: "4px"}}>
+                  No repeat customer purchases yet
+                </div>
+                <s-text color="subdued">
+                  Customers who return to make subsequent purchases using thank-you discount codes will be listed here.
+                </s-text>
+              </div>
+            </s-box>
           )}
         </s-section>
       </div>
     </s-page>
   );
+}
+
+function formatDate(value: string) {
+  try {
+    return new Intl.DateTimeFormat("en", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
 }
 
 function shortGid(value?: string | null) {

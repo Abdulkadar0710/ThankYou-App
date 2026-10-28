@@ -42,32 +42,6 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
      ```
    - **Impact**: If the backend returns `400 Bad Request`, `409 Conflict`, or `500 Server Error`, the editor silently ignores the error and navigates the merchant to `/app/blocks` as if the save succeeded. Leftover debug text `"Could not save block2."` is also present on line 248.
 
-2. **MySQL Database Crash on Image File Upload (Base64 vs `TEXT` limit)** `[FIXED]`
-   - **Location**: [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L773-L789) & [schema.prisma](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma#L56)
-   - **Status**: Fixed. Updated `ThankYouBlock.config` from `@db.Text` to `@db.LongText` in [schema.prisma](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma) and synced with the MySQL database, supporting Base64 images up to the 1,000 KB file picker limit.
-
-3. **Hardcoded Dev Store Product ID in Gift Options API**
-   - **Location**: [api.gift-wrap-variants.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/api.gift-wrap-variants.jsx#L4-L5)
-   - **Issue**: `const GIFT_WRAP_PRODUCT_ID = 'gid://shopify/Product/8283468398681';` is hardcoded to the developer test store.
-   - **Impact**: On any other merchant store, the product will not exist, returning `"Gift wrap product not found"`. When customers check "Add gift wrap" in checkout, it will display the error `"Could not load gift wrap options."`
-
-
----
-
-### 🟡 Medium & Minor Bugs
-
-5. **`replaceReferralVariables` Can Inject `"undefined"`** `[FIXED]`
-   - **Location**: [extensions/thank-you-loyalty/src/index.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-loyalty/src/index.jsx#L134) & [extensions/thank-you-referral/src/index.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-referral/src/index.jsx#L134)
-   - **Status**: Fixed. Added type guards and fallback to empty string `trimText(cfg.referralLink) || ''`.
-
-6. **Invalid HTML Elements in `ThankYouBlockEditor.tsx`** `[FIXED]`
-   - **Location**: [ThankYouBlockEditor.tsx:L709](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L709), [L796](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L796), and [L1511](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L1511)
-   - **Status**: Fixed. Replaced `<text>` with standard Polaris `<s-text color="subdued">` and replaced `width={70}` on input with `maxLength={80}`.
-
-7. **Template Preview Broken Link in `app.blocks._index.tsx`** `[FIXED]`
-   - **Location**: [app.blocks._index.tsx:L198](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.blocks._index.tsx#L198)
-   - **Status**: Fixed. Updated path to existing valid asset `/image-preview.png`.
-
 ---
 
 ## 3. Unfinished & Incomplete Features
@@ -76,11 +50,9 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
    - **Status**: Answers are successfully saved to the database table `HowDidYouHearResponse` via [api.how-did-you-hear.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/api.how-did-you-hear.jsx).
    - **Unfinished**: There is **no UI anywhere in the Admin panel** ([app.analytics.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.analytics.tsx) or [app._index.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app._index.tsx)) for merchants to view survey tallies, breakdown percentages, or order attributions.
 
-2. **Money Made Dashboard Hardcoded Demo Data Fallback**
-   - **Location**: [app.money-made.tsx:L223-L228](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx#L223-L228) and [L442-L458](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx#L442-L458)
-   - **Unfinished**: When a store has `0` conversions recorded (`!hasLiveData`), it displays hardcoded demo revenue ($3,305.00 total, $2,480 1-click upsell, $680 discount, $145 gift wrap) and mock orders `#1042` and `#1041` instead of an empty state.
-   - **Unused Data**: `repeatLogs` is calculated in the loader and returned to the page, but is never rendered anywhere in the JSX.
-   - **Churn Rate**: `churnRate` always falls back to `3.2%` because `subscriptionStatus` is never updated anywhere in the codebase.
+2. **Money Made Dashboard Hardcoded Demo Data Fallback** `[FIXED]`
+   - **Location**: [app.money-made.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx)
+   - **Status**: Fixed. Removed artificial revenue fallbacks ($2,480, $680, $145, 15 count) so real store data ($0.00 when empty) is displayed. Replaced fake demo order rows (#1042, #1041) with a proper empty state. Rendered `repeatLogs` into a "Repeat Customer Purchases" section and surfaced `repeatPurchaseRate` and `totalShippingFeeSaved` in the dashboard banner. Fixed fake rate fallbacks to `"0.0"`.
 
 3. **Free Shipping Progress Bar Manual Threshold is Not Exposed in Admin**
    - **Location**: [extensions/free-shipping-progress/src/index.jsx:L126](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/free-shipping-progress/src/index.jsx#L126) and [api.shipping-threshold.jsx:L138](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/api.shipping-threshold.jsx#L138)
@@ -107,8 +79,8 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 ## 4. Suggested Next Steps
 
 1. **Uncomment error handling in [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L237)** so merchants receive clear error messages if a block save fails.
-2. ~~**Update Prisma Schema** for `ThankYouBlock.config` from `@db.Text` to `@db.MediumText` or `@db.LongText`~~ `[DONE]`
+2. **Update Prisma Schema** for `ThankYouBlock.config` from `@db.Text` to `@db.MediumText` or `@db.LongText` so image uploads up to 1MB do not trigger database truncation errors.
 3. **Make Gift Wrap configurable** or add an automated product lookup by handle/tag instead of the hardcoded `GIFT_WRAP_PRODUCT_ID`.
 4. **Add a Free Shipping Threshold field** in `FreeShippingProgressFields` so merchants can specify a threshold directly from the app.
 5. **Add a "How Did You Hear" response breakdown card** to [app.analytics.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.analytics.tsx).
-6. **Add an empty state to [app.money-made.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx)** when conversions equal zero.
+6. ~~**Add an empty state to [app.money-made.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx)** when conversions equal zero.~~ `[DONE]`

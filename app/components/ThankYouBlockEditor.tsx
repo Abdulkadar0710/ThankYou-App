@@ -794,7 +794,7 @@ function ImageSourceField({
         {label}
       </label>
       <s-text color="subdued">
-        Upload an image here or provide a publicly accessible image URL or upload an image to Shopify Files (Content → Files) and use its URL here.
+        Upload an image (1MB size limit) here or provide a publicly accessible image URL or upload an image to Shopify Files (Content → Files) and use its URL here.
       </s-text>
          
       <input
