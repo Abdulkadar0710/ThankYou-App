@@ -6,24 +6,23 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 
 ## 1. Feature Map & Current Implementation Status
 
-| Feature / Block | Target Location | Admin Editor Config | Backend API / Webhook | Extension Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **Upsell Product Recommendations** | Thank-You Page | `UpsellFields` | `/api/recommendations` | Active (`thank-you-upsell`) |
-| **1-Click Upsell (Same Box / 0 Extra Shipping)** | Thank-You Page | Built into Upsell Block | `/api/add-to-order` | Active with 10-min countdown timer |
-| **FAQ Accordion** | Thank-You Page | `FaqFields` | `/api/blocks` | Active (`thank-you-faq`) |
-| **Image Banner** | Thank-You Page | `MediaFields` | `/api/blocks` | Active (`thank-you-image`) |
-| **Video Banner** | Thank-You Page | `MediaFields` | `/api/blocks` | Active (`thank-you-video`) |
-| **Discount Code** | Thank-You & Checkout | `DiscountFields` | `/api/blocks` | Active (`thank-you-discount`) |
-| **Email Subscription** | Thank-You Page | `SubscriptionFields` | `/api/subscription-click` | Active (`thank-you-subscription`) |
-| **Loyalty Program** | Thank-You Page | `LoyaltyFields` | `/api/blocks` | Active (`thank-you-loyalty`) |
-| **Referral Offer** | Thank-You Page | `ReferralFields` | `/api/blocks` | Active (`thank-you-referral`) |
-| **How Did You Hear About Us? (Survey)** | Thank-You Page | `HowDidYouHearFields` | `/api/how-did-you-hear` | Active (`how-did-you-hear-about-us`) |
-| **Checkout Upsell** | Checkout Page | `CheckoutUpsellFields` | `/api/blocks` | Active (`checkout-upsell`) |
-| **Free Shipping Progress Bar** | Checkout Page | `FreeShippingProgressFields` | `/api/shipping-threshold` | Active (`free-shipping-progress`) |
-| **Gift Options (Wrap & Message)** | Checkout Page | `GiftOptionsFields` | `/api/gift-wrap-variants` | Active (`gift-options`) |
-| **Click & Interaction Analytics** | Embedded Admin | `/app/analytics` | `/api/analytics-click` | Active |
-| **Money Made Dashboard** | Embedded Admin | `/app/money-made` | Webhooks + `upsellConversion` | Active (with mock fallbacks) |
-| **Help & Documentation** | Embedded Admin | `/app/help` | N/A | Active |
+| Feature / Block                                  | Target Location      | Admin Editor Config          | Backend API / Webhook         | Extension Status                     |
+| :----------------------------------------------- | :------------------- | :--------------------------- | :---------------------------- | :----------------------------------- |
+| **Upsell Product Recommendations**               | Thank-You Page       | `UpsellFields`               | `/api/recommendations`        | Active (`thank-you-upsell`)          |
+| **1-Click Upsell (Same Box / 0 Extra Shipping)** | Thank-You Page       | Built into Upsell Block      | `/api/add-to-order`           | Active with 10-min countdown timer   |
+| **FAQ Accordion**                                | Thank-You Page       | `FaqFields`                  | `/api/blocks`                 | Active (`thank-you-faq`)             |
+| **Image Banner**                                 | Thank-You Page       | `MediaFields`                | `/api/blocks`                 | Active (`thank-you-image`)           |
+| **Video Banner**                                 | Thank-You Page       | `MediaFields`                | `/api/blocks`                 | Active (`thank-you-video`)           |
+| **Discount Code**                                | Thank-You & Checkout | `DiscountFields`             | `/api/blocks`                 | Active (`thank-you-discount`)        |
+| **Email Subscription**                           | Thank-You Page       | `SubscriptionFields`         | `/api/subscription-click`     | Active (`thank-you-subscription`)    |
+| **Loyalty Program**                              | Thank-You Page       | `LoyaltyFields`              | `/api/blocks`                 | Active (`thank-you-loyalty`)         |
+| **How Did You Hear About Us? (Survey)**          | Thank-You Page       | `HowDidYouHearFields`        | `/api/how-did-you-hear`       | Active (`how-did-you-hear-about-us`) |
+| **Checkout Upsell**                              | Checkout Page        | `CheckoutUpsellFields`       | `/api/blocks`                 | Active (`checkout-upsell`)           |
+| **Free Shipping Progress Bar**                   | Checkout Page        | `FreeShippingProgressFields` | `/api/shipping-threshold`     | Active (`free-shipping-progress`)    |
+| **Gift Options (Wrap & Message)**                | Checkout Page        | `GiftOptionsFields`          | `/api/gift-wrap-variants`     | Active (`gift-options`)              |
+| **Click & Interaction Analytics**                | Embedded Admin       | `/app/analytics`             | `/api/analytics-click`        | Active                               |
+| **Money Made Dashboard**                         | Embedded Admin       | `/app/money-made`            | Webhooks + `upsellConversion` | Active (with mock fallbacks)         |
+| **Help & Documentation**                         | Embedded Admin       | `/app/help`                  | N/A                           | Active                               |
 
 ---
 
@@ -53,9 +52,6 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
    - **Issue**: `const GIFT_WRAP_PRODUCT_ID = 'gid://shopify/Product/8283468398681';` is hardcoded to the developer test store.
    - **Impact**: On any other merchant store, the product will not exist, returning `"Gift wrap product not found"`. When customers check "Add gift wrap" in checkout, it will display the error `"Could not load gift wrap options."`
 
-4. **Missing Validation for `referral` in `validateBlockForm`**
-   - **Location**: [thankYouBlock.ts](file:///home/gwl/Downloads/August-2026/thanks-new/app/models/thankYouBlock.ts#L430-L557)
-   - **Issue**: `validateBlockForm` has checks for `faq`, `image`, `video`, `discount`, `loyalty`, `subscription`, `checkoutUpsell`, `freeShippingProgress`, `giftOptions`, and `howDidYouHear`, but **omits `referral` entirely**. An empty referral block can bypass server validation.
 
 ---
 
@@ -93,7 +89,7 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 
 4. **Discount Code "Click to Copy" Unfinished**
    - **Location**: [extensions/thank-you-discount/src/index.jsx:L22](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-discount/src/index.jsx#L22)
-   - **Unfinished**: `const [copied, setCopied] = useState(false);` is defined, but neither is ever used. There is no copy-to-clipboard button or click event, despite [app.help.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.help.tsx#L238) stating *"Customers can copy it with one click."*
+   - **Unfinished**: `const [copied, setCopied] = useState(false);` is defined, but neither is ever used. There is no copy-to-clipboard button or click event, despite [app.help.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.help.tsx#L238) stating _"Customers can copy it with one click."_
 
 5. **Unused Prisma Model `DailyRevenueAggregate`**
    - **Location**: [prisma/schema.prisma:L116-L135](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma#L116-L135)
@@ -113,8 +109,7 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 
 1. **Uncomment error handling in [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L237)** so merchants receive clear error messages if a block save fails.
 2. **Update Prisma Schema** for `ThankYouBlock.config` from `@db.Text` to `@db.MediumText` or `@db.LongText` so image uploads up to 1MB do not trigger database truncation errors.
-3. **Add referral block validation** in [thankYouBlock.ts](file:///home/gwl/Downloads/August-2026/thanks-new/app/models/thankYouBlock.ts).
-4. **Make Gift Wrap configurable** or add an automated product lookup by handle/tag instead of the hardcoded `GIFT_WRAP_PRODUCT_ID`.
-5. **Add a Free Shipping Threshold field** in `FreeShippingProgressFields` so merchants can specify a threshold directly from the app.
-6. **Add a "How Did You Hear" response breakdown card** to [app.analytics.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.analytics.tsx).
-7. **Add an empty state to [app.money-made.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx)** when conversions equal zero.
+3. **Make Gift Wrap configurable** or add an automated product lookup by handle/tag instead of the hardcoded `GIFT_WRAP_PRODUCT_ID`.
+4. **Add a Free Shipping Threshold field** in `FreeShippingProgressFields` so merchants can specify a threshold directly from the app.
+5. **Add a "How Did You Hear" response breakdown card** to [app.analytics.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.analytics.tsx).
+6. **Add an empty state to [app.money-made.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.money-made.tsx)** when conversions equal zero.

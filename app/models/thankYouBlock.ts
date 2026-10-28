@@ -7,7 +7,6 @@ export type ThankYouBlockType =
   | "checkoutUpsell"
   | "freeShippingProgress"
   | "giftOptions"
-  | "referral"
   | "loyalty"
   | "discount"
   | "subscription"
@@ -74,12 +73,6 @@ export type ThankYouBlockConfig = {
   description?: string;
   buttonText?: string;
   buttonUrl?: string;
-  shareLabel?: string;
-  shareText?: string;
-  referralCode?: string;
-  referralLink?: string;
-  friendReward?: string;
-  advocateReward?: string;
   pointsText?: string;
   validUntil?: string;
   discountCode?: string;
@@ -187,23 +180,6 @@ export const blockTemplates = {
       discountCode: "",
     },
   },
-  referral: {
-    type: "referral",
-    title: "Referral Offer",
-    description: "Invite customers to share your store with friends.",
-    defaultName: "Referral Offer",
-    defaultConfig: {
-      title: "Refer friends. Get rewards.",
-      description:
-        "Give your friends {friend_reward} off all products. Get {advocate_reward} off all products when they purchase with your discount code {referral_code}.",
-      shareLabel: "Share now:",
-      shareText: "Share",
-      referralCode: "THANKYOU15",
-      referralLink: "",
-      friendReward: "15%",
-      advocateReward: "$10",
-    },
-  },
   loyalty: {
     type: "loyalty",
     title: "Loyalty Offer",
@@ -262,7 +238,6 @@ export function isBlockType(value: unknown): value is ThankYouBlockType {
     value === "checkoutUpsell" ||
     value === "freeShippingProgress" ||
     value === "giftOptions" ||
-    value === "referral" ||
     value === "loyalty" ||
     value === "discount" ||
     value === "subscription" ||
@@ -305,19 +280,6 @@ export function configFromForm(
       imageLink: field(formData, "imageLink"),
       videoUrl: field(formData, "videoUrl"),
       videoThumbnail: field(formData, "videoThumbnail"),
-    };
-  }
-
-  if (type === "referral") {
-    return {
-      title: field(formData, "title"),
-      description: field(formData, "description"),
-      shareLabel: field(formData, "shareLabel"),
-      shareText: field(formData, "shareText"),
-      referralCode: field(formData, "referralCode"),
-      referralLink: field(formData, "referralLink"),
-      friendReward: field(formData, "friendReward"),
-      advocateReward: field(formData, "advocateReward"),
     };
   }
 

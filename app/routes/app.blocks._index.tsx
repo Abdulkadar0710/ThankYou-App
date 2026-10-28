@@ -196,7 +196,6 @@ function TemplatePreview({ type }: { type: string }) {
     image: "/image-preview.png",
     video: "/video-preview.png",
     media: "/image-preview.png",
-    referral: "/referral-preview.png",
     loyalty: "/loyalty-preview.png",
     discount: "/discount-preview.png",
     subscription: "/subscription-preview.png",
@@ -272,20 +271,6 @@ function TemplatePreview({ type }: { type: string }) {
 //     );
 //   }
 
-//   if (type === "referral") {
-//     return (
-//       <s-box padding="base" borderWidth="base" borderRadius="base">
-//         <s-stack gap="small">
-//           <s-text type="strong">Refer friends. Get rewards.</s-text>
-//           <s-text>Give 15% off and earn a reward after their purchase.</s-text>
-//           <s-stack direction="inline" gap="small">
-//             {/* <s-button>Share</s-button> */}
-//             <s-button variant="secondary">Copy code</s-button>
-//           </s-stack>
-//         </s-stack>
-//       </s-box>
-//     );
-//   }
 
 //   if (type === "loyalty") {
 //     return (

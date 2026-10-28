@@ -299,8 +299,6 @@ export function ThankYouBlockEditor({
                   <DiscountFields config={config} />
                 ) : type === "subscription" ? (
                   <SubscriptionFields config={config} />
-                ) : type === "referral" ? (
-                  <ReferralFields config={config} />
                 ) : type === "loyalty" ? (
                   <LoyaltyFields config={config} />
                 ) : type === "checkoutUpsell" ? (
@@ -1013,80 +1011,6 @@ function SubscriptionFields({config}: {config: ThankYouBlockConfig}) {
   );
 }
 
-function ReferralFields({config}: {config: ThankYouBlockConfig}) {
-  return (
-    <s-stack gap="base">
-      {/* <s-box padding="base" borderWidth="base" borderRadius="base">
-        <s-text>
-          You can use variables in the description: {"{friend_reward}"},{" "}
-          {"{advocate_reward}"}, {"{referral_code}"}, and {"{referral_link}"}.
-        </s-text>
-      </s-box> */}
-
-      <TextField
-        label="Title"
-        name="title"
-        value={config.title || "Refer friends. Get rewards."}
-        maxLength={80}
-        required
-      />
-      <RichTextField
-        label="Description"
-        name="description"
-        required
-        value={
-          config.description ||
-          "Give your friends {friend_reward} off all products. Get {advocate_reward} off all products when they purchase with your discount code {referral_code}."
-        }
-      />
-      <s-text>
-          You can use variables in the description: {"{friend_reward}"},{" "}
-          {"{advocate_reward}"}, {"{referral_code}"}, and {"{referral_link}"}.
-        </s-text>
-      <TextField
-        label="Share now text"
-        name="shareLabel"
-        value={config.shareLabel || "Share now:"}
-        maxLength={40}
-        required
-      />
-      {/* <TextField
-        label="Share button text"
-        name="shareText"
-        value={config.shareText || "Share"}
-        maxLength={24}
-      /> */}
-      <TextField
-        label="Friend reward"
-        name="friendReward"
-        value={config.friendReward || "15%"}
-        maxLength={30}
-        required
-      />
-      <TextField
-        label="Advocate reward"
-        name="advocateReward"
-        value={config.advocateReward || "$10"}
-        maxLength={30}
-        required
-      />
-      <TextField
-        label="Referral code"
-        name="referralCode"
-        value={config.referralCode || "THANKYOU15"}
-        maxLength={40}
-        required
-      />
-      {/* <TextField
-        label="Referral link"
-        name="referralLink"
-        value={config.referralLink || ""}
-        placeholder="https://example.com/referral"
-      /> */}
-    </s-stack>
-  );
-}
-
 function LoyaltyFields({config}: {config: ThankYouBlockConfig}) {
   return (
     <s-stack gap="base">
@@ -1439,32 +1363,6 @@ function BlockPreview({
   type: ThankYouBlockType;
   config: ThankYouBlockConfig;
 }) {
-  if (type === "referral") {
-    const code = config.referralCode || "THANKYOU15";
-
-    return (
-      <s-box padding="base" borderWidth="base" borderRadius="base">
-        <s-stack gap="small">
-          <s-box padding="small" background="subdued" borderRadius="base">
-            <s-text type="strong">{config.title || "Refer friends. Get rewards."}</s-text>
-          </s-box>
-          <s-text>
-            {replaceReferralVariables(
-              config.description ||
-                "Give your friends {friend_reward} off all products. Get {advocate_reward} off all products when they purchase with your discount code {referral_code}.",
-              config,
-            )}
-          </s-text>
-          <s-text color="subdued">{config.shareLabel || "Share now:"}</s-text>
-          <s-stack direction="inline" gap="small">
-            <s-button>{config.shareText || "Share"}</s-button>
-            <s-button variant="secondary">{code}</s-button>
-          </s-stack>
-        </s-stack>
-      </s-box>
-    );
-  }
-
   if (type === "loyalty") {
     return (
       <s-box padding="base" borderWidth="base" borderRadius="base">
@@ -1489,17 +1387,6 @@ function BlockPreview({
       <s-text color="subdued">Save to preview this block on the thank-you page.</s-text>
     </s-box>
   );
-}
-
-function replaceReferralVariables(
-  value: string,
-  config: ThankYouBlockConfig,
-) {
-  return value
-    .replaceAll("{friend_reward}", config.friendReward || "15%")
-    .replaceAll("{advocate_reward}", config.advocateReward || "$10")
-    .replaceAll("{referral_code}", config.referralCode || "THANKYOU15")
-    .replaceAll("{referral_link}", config.referralLink || "");
 }
 
 function UpsellFields({config}: {config: ThankYouBlockConfig}) {

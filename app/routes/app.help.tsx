@@ -302,19 +302,18 @@ export default function HelpPage() {
             </s-stack>
           </s-box>
 
-          {/* Loyalty & Referral Offers */}
+          {/* Loyalty Program */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>9. Loyalty Program & Referral Blocks</s-heading>
+              <s-heading>9. Loyalty Program Block</s-heading>
               <s-paragraph>
-                Drive customer retention by inviting new buyers to sign up for rewards points or refer their friends for mutual store discounts.
+                Drive customer retention by inviting new buyers to sign up for rewards points and loyalty perks.
               </s-paragraph>
               <s-box padding="small" background="subdued" borderRadius="base">
                 <s-stack gap="small-200">
                   <s-text type="strong">Configuration Fields:</s-text>
                   <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
                     <li><strong>Loyalty:</strong> Customize headline, points badge (e.g. <em>"2x points"</em>), promotional description, and external sign-up button URL.</li>
-                    <li><strong>Referral:</strong> Set friend reward discount (e.g. <em>"15%"</em>), advocate store credit (e.g. <em>"$10"</em>), referral promo code, and share link.</li>
                   </ul>
                 </s-stack>
               </s-box>
