@@ -1736,6 +1736,11 @@ function ProductConditionFields({config}: {config: ThankYouBlockConfig}) {
     config.productConditions?.[0] || defaultProductCondition();
   const [condition, setCondition] =
     useState<ProductCondition>(initialCondition);
+  const [tagsInput, setTagsInput] = useState(
+    initialCondition.type === "tags"
+      ? initialCondition.values.map((v) => v.label).join(", ")
+      : "",
+  );
   const valuesText = condition.values.map((value) => value.label).join(", ");
 
   const updateCondition = (next: Partial<ProductCondition>) => {
@@ -1790,95 +1795,108 @@ function ProductConditionFields({config}: {config: ThankYouBlockConfig}) {
         readOnly
       />
 
-      {/* <div
+      <div
         style={{
-          border: "1px solid #d7dce0",
-          borderRadius: "8px",
           display: "grid",
           gap: "12px",
-          padding: "12px",
+          gridTemplateColumns:
+            "minmax(130px, 0.75fr) minmax(130px, 0.75fr) minmax(220px, 2fr)",
         }}
-      > */}
-        <div
-          style={{
-            display: "grid",
-            gap: "12px",
-            gridTemplateColumns:
-              "minmax(130px, 0.75fr) minmax(130px, 0.75fr) minmax(220px, 2fr)",
-          }}
-        >
-          <div>
-            <label style={labelStyle} htmlFor="productConditionType">
-              Condition
-            </label>
-            <select
-              id="productConditionType"
-              value={condition.type}
-              onChange={(event) =>
-                setCondition({
-                  type: (event.target as HTMLSelectElement)
-                    .value as ProductCondition["type"],
-                  rule: condition.rule,
-                  values: [],
-                })
-              }
-              style={fieldStyle}
-            >
-              {/* <optgroup> */}
-                {/* <option value="tags">Tags</option> */}
-                <option value="all">
-                  All Products
-                </option>
-                <option value="collections">Collections</option>
-              {/* </optgroup> */}
-            </select>
-          </div>
-
-         {condition.type === "collections" && (
-          <>
-          <div>
-            <label style={labelStyle} htmlFor="productConditionRule">
-              Type
-            </label>
-            <select
-              id="productConditionRule"
-              value={condition.rule}
-              onChange={(event) =>
-                updateCondition({
-                  rule: (event.target as HTMLSelectElement)
-                    .value as ProductCondition["rule"],
-                })
-              }
-              style={fieldStyle}
-            >
-              <option value="include">Includes</option>
-              <option value="exclude">Excludes</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={labelStyle} htmlFor="productConditionValues">
-              Value
-            </label>
-            <div style={{display: "grid", gap: "8px"}}>
-              <button
-                type="button"
-                onClick={openCollectionPicker}
-                style={secondaryButtonStyle}
-              >
-                Select collections
-              </button>
-              {condition.values.length ? (
-                <div style={{color: "#616a75", fontSize: "13px"}}>
-                  {valuesText}
-                </div>
-              ) : null}
-            </div>
-          </div>
-          </>
-          )}
+      >
+        <div>
+          <label style={labelStyle} htmlFor="productConditionType">
+            Condition
+          </label>
+          <select
+            id="productConditionType"
+            value={condition.type}
+            onChange={(event) => {
+              const nextType = (event.target as HTMLSelectElement)
+                .value as ProductCondition["type"];
+              setTagsInput("");
+              setCondition({
+                type: nextType,
+                rule: condition.rule,
+                values: [],
+              });
+            }}
+            style={fieldStyle}
+          >
+            <option value="all">All Products</option>
+            <option value="collections">Collections</option>
+            <option value="tags">Tags</option>
+          </select>
         </div>
-      {/* </div> */}
+
+        {(condition.type === "collections" || condition.type === "tags") && (
+          <>
+            <div>
+              <label style={labelStyle} htmlFor="productConditionRule">
+                Type
+              </label>
+              <select
+                id="productConditionRule"
+                value={condition.rule}
+                onChange={(event) =>
+                  updateCondition({
+                    rule: (event.target as HTMLSelectElement)
+                      .value as ProductCondition["rule"],
+                  })
+                }
+                style={fieldStyle}
+              >
+                <option value="include">Includes</option>
+                <option value="exclude">Excludes</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle} htmlFor="productConditionValues">
+                Value
+              </label>
+              {condition.type === "collections" ? (
+                <div style={{display: "grid", gap: "8px"}}>
+                  <button
+                    type="button"
+                    onClick={openCollectionPicker}
+                    style={secondaryButtonStyle}
+                  >
+                    Select collections
+                  </button>
+                  {condition.values.length ? (
+                    <div style={{color: "#616a75", fontSize: "13px"}}>
+                      {valuesText}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div>
+                  <input
+                    id="productConditionTags"
+                    placeholder="Enter comma-separated tags (e.g. sale, vip, summer)"
+                    value={tagsInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTagsInput(val);
+                      const parsed = val
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean)
+                        .map((tag) => ({
+                          id: tag,
+                          label: tag,
+                          handle: tag.toLowerCase().replace(/\s+/g, "-"),
+                        }));
+                      updateCondition({values: parsed});
+                    }}
+                    style={fieldStyle}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </s-stack>
   );
 }

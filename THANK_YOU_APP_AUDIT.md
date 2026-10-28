@@ -62,17 +62,17 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
    - **Location**: [extensions/thank-you-discount/src/index.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/extensions/thank-you-discount/src/index.jsx)
    - **Status**: Fixed. Added an interactive `<s-button>` with a `handleCopy` handler using `navigator.clipboard.writeText` and fallback. Connected `copied` state to toggle button text between "Copy code" and "Copied!" for 2 seconds. Also added discount code preview to `BlockPreview` in [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx).
 
-5. **Unused Prisma Model `DailyRevenueAggregate`**
-   - **Location**: [prisma/schema.prisma:L116-L135](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma#L116-L135)
-   - **Unfinished**: A full aggregate table schema is defined in Prisma, but it is never populated, updated, or queried anywhere in the application.
+5. **Unused Prisma Model `DailyRevenueAggregate`** `[FIXED]`
+   - **Location**: [prisma/schema.prisma](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma)
+   - **Status**: Fixed. Removed unused model definition and synced the Prisma schema with the database via `npx prisma db push`.
 
-6. **Abandoned Directory `extensions/thank-you-survey`**
+6. **Abandoned Directory `extensions/thank-you-survey`** `[CLEANED]`
    - **Location**: `extensions/thank-you-survey`
-   - **Unfinished**: Contains only an empty `dist/` folder with no extension definition (`shopify.extension.toml`). It has been replaced by `extensions/how-did-you-hear-about-us` and can be cleaned up.
+   - **Status**: Verified cleaned up. The obsolete folder has been removed and superseded by `extensions/how-did-you-hear-about-us`.
 
-7. **Product Conditions "Tags" Trigger Disabled**
-   - **Location**: [ThankYouBlockEditor.tsx:L1920](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L1920)
-   - **Unfinished**: The documentation in `app.help.tsx` mentions filtering upsell offers by collections or tags, but `<option value="tags">Tags</option>` is commented out in the editor.
+7. **Product Conditions "Tags" Trigger Disabled** `[FIXED]`
+   - **Location**: [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx)
+   - **Status**: Fixed. Enabled `<option value="tags">Tags</option>` in the Trigger condition selector and added a comma-separated tag input field. Tags are parsed into `ProductConditionValue[]` and properly evaluated against line-item product tags in both `api.recommendations.jsx` and `checkout-upsell`.
 
 ---
 

@@ -113,26 +113,6 @@ model CustomerRetentionLog {
   @@index([shop, discountCodeIssued])
 }
 
-model DailyRevenueAggregate {
-  id                      String   @id @default(cuid())
-  shop                    String
-  date                    DateTime
-  totalRevenue            Float    @default(0.0)
-  oneClickUpsellRevenue   Float    @default(0.0)
-  discountRevenue         Float    @default(0.0)
-  subscriptionRevenue     Float    @default(0.0)
-  giftWrapRevenue         Float    @default(0.0)
-  shippingFeeSaved        Float    @default(0.0)
-  repeatOrdersCount       Int      @default(0)
-  newSubscribersCount     Int      @default(0)
-  churnedSubscribersCount Int      @default(0)
-  activeSubscribersCount  Int      @default(0)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-
-  @@unique([shop, date])
-  @@index([shop, date])
-}
 
 model HowDidYouHearResponse {
   id             String   @id @default(cuid())
