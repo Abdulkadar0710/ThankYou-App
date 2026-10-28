@@ -53,7 +53,7 @@ model ThankYouBlock {
   type      String
   name      String
   status    String   @default("draft")
-  config    String   @db.Text
+  config    String   @db.LongText
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

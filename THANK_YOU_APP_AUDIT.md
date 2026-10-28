@@ -42,10 +42,9 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
      ```
    - **Impact**: If the backend returns `400 Bad Request`, `409 Conflict`, or `500 Server Error`, the editor silently ignores the error and navigates the merchant to `/app/blocks` as if the save succeeded. Leftover debug text `"Could not save block2."` is also present on line 248.
 
-2. **MySQL Database Crash on Image File Upload (Base64 vs `TEXT` limit)**
+2. **MySQL Database Crash on Image File Upload (Base64 vs `TEXT` limit)** `[FIXED]`
    - **Location**: [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L773-L789) & [schema.prisma](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma#L56)
-   - **Issue**: The file picker allows uploading images up to 1,000 KB encoded as Base64 Data URLs. However, `ThankYouBlock.config` is defined in Prisma as `@db.Text`. In MySQL, standard `TEXT` has a hard limit of **65,535 bytes (64 KB)**.
-   - **Impact**: Uploading any image larger than ~48 KB fails with a MySQL error: `Data too long for column 'config' at row 1`, breaking block saves. (Prisma schema should use `@db.MediumText` or `@db.LongText`).
+   - **Status**: Fixed. Updated `ThankYouBlock.config` from `@db.Text` to `@db.LongText` in [schema.prisma](file:///home/gwl/Downloads/August-2026/thanks-new/prisma/schema.prisma) and synced with the MySQL database, supporting Base64 images up to the 1,000 KB file picker limit.
 
 3. **Hardcoded Dev Store Product ID in Gift Options API**
    - **Location**: [api.gift-wrap-variants.jsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/api.gift-wrap-variants.jsx#L4-L5)
@@ -108,7 +107,7 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 ## 4. Suggested Next Steps
 
 1. **Uncomment error handling in [ThankYouBlockEditor.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/components/ThankYouBlockEditor.tsx#L237)** so merchants receive clear error messages if a block save fails.
-2. **Update Prisma Schema** for `ThankYouBlock.config` from `@db.Text` to `@db.MediumText` or `@db.LongText` so image uploads up to 1MB do not trigger database truncation errors.
+2. ~~**Update Prisma Schema** for `ThankYouBlock.config` from `@db.Text` to `@db.MediumText` or `@db.LongText`~~ `[DONE]`
 3. **Make Gift Wrap configurable** or add an automated product lookup by handle/tag instead of the hardcoded `GIFT_WRAP_PRODUCT_ID`.
 4. **Add a Free Shipping Threshold field** in `FreeShippingProgressFields` so merchants can specify a threshold directly from the app.
 5. **Add a "How Did You Hear" response breakdown card** to [app.analytics.tsx](file:///home/gwl/Downloads/August-2026/thanks-new/app/routes/app.analytics.tsx).
