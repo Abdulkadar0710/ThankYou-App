@@ -15,7 +15,7 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 | **Video Banner**                                 | Thank-You Page       | `MediaFields`                | `/api/blocks`                 | Active (`thank-you-video`)           |
 | **Discount Code**                                | Thank-You & Checkout | `DiscountFields`             | `/api/blocks`                 | Active (`thank-you-discount`)        |
 | **Email Subscription**                           | Thank-You Page       | `SubscriptionFields`         | `/api/subscription-click`     | Active (`thank-you-subscription`)    |
-| **Promotion**                                    | Thank-You Page       | `PromotionFields`            | `/api/blocks`                 | Active (`thank-you-loyalty`)         |
+| **Promotion**                                    | Thank-You Page       | `PromotionFields`            | `/api/blocks`                 | Active (`thank-you-promotion`)       |
 | **How Did You Hear About Us? (Survey)**          | Thank-You Page       | `HowDidYouHearFields`        | `/api/how-did-you-hear`       | Active (`how-did-you-hear-about-us`) |
 | **Checkout Upsell**                              | Checkout Page        | `CheckoutUpsellFields`       | `/api/blocks`                 | Active (`checkout-upsell`)           |
 | **Free Shipping Progress Bar**                   | Checkout Page        | `FreeShippingProgressFields` | `/api/shipping-threshold`     | Active (`free-shipping-progress`)    |
