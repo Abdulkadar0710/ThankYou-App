@@ -59,25 +59,47 @@ function Extension() {
 
   if (!discountCode) return null;
 
+  const markCopied = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleCopy = async () => {
+    markCopied();
+
+    // Fallback attempts for environments outside Shopify's native command invoker
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(discountCode);
-      } else if (typeof document !== 'undefined') {
+        return;
+      }
+    } catch (_) {
+      // Direct clipboard API might be blocked by iframe permissions policy, fall through
+    }
+
+    try {
+      if (typeof document !== 'undefined') {
         const textArea = document.createElement('textarea');
         textArea.value = discountCode;
         textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '1px';
+        textArea.style.height = '1px';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
+        textArea.setSelectionRange(0, discountCode.length);
         document.execCommand('copy');
         document.body.removeChild(textArea);
       }
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy discount code:', err);
+      console.warn('Fallback copy error:', err);
     }
   };
 
@@ -90,11 +112,19 @@ function Extension() {
           {description}
         </s-text>
 
+        <s-clipboard-item
+          id="discount-code-clipboard"
+          text={discountCode}
+          onCopy={markCopied}
+        />
+
         <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="center">
           <s-box padding="small" border="base" borderRadius="base">
             <s-text type="strong">{discountCode}</s-text>
           </s-box>
           <s-button
+            command="--copy"
+            commandFor="discount-code-clipboard"
             onClick={handleCopy}
             accessibilityLabel="Copy discount code"
           >
