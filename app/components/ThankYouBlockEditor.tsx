@@ -1246,7 +1246,7 @@ function SurveyFields({config}: {config: ThankYouBlockConfig}) {
       <TextField
         label="Success message"
         name="successMessage"
-        value={config.successMessage || "Thank you for your valuable feedback!"}
+        value={config.successMessage || "Your message has been recorded successfully."}
         maxLength={120}
       />
     </s-stack>

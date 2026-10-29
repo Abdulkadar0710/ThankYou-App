@@ -92,7 +92,7 @@ function Extension() {
 
   const buttonText = config.buttonText?.trim() || 'Submit';
   const successMessage =
-    config.successMessage?.trim() || 'Thank you for your valuable feedback!';
+    config.successMessage?.trim() || 'Your message has been recorded successfully.';
 
   const handleAnswerChange = (qId, val) => {
     setAnswers((prev) => ({
@@ -175,37 +175,28 @@ function Extension() {
   return (
     <s-box padding="base" border="base" borderRadius="base">
       <s-stack gap="base">
-        {/* Header with Title and Step Progress */}
-        <s-stack gap="small-200">
-          <s-text type="strong">{heading}</s-text>
-          {description && <s-text color="subdued">{description}</s-text>}
-          {!submitted && totalSteps > 1 && (
-            <s-stack gap="small-100">
-              <s-text color="subdued">
-                Question {activeIndex + 1} of {totalSteps}
-              </s-text>
-              <s-progress value={progressPercent} max={100} />
-            </s-stack>
-          )}
-        </s-stack>
-
         {submitted ? (
           <s-box padding="base" background="subdued" borderRadius="base">
             <s-stack gap="small">
               <s-text type="strong">✓ {successMessage}</s-text>
-              {submittedAnswers.length > 0 && (
-                <s-stack gap="extra-small">
-                  {submittedAnswers.map((item, idx) => (
-                    <s-text key={idx} color="subdued">
-                      <strong>{item.question}:</strong> {item.answer || '(No response)'}
-                    </s-text>
-                  ))}
-                </s-stack>
-              )}
             </s-stack>
           </s-box>
         ) : (
           <s-stack gap="base">
+            {/* Header with Title and Step Progress */}
+            <s-stack gap="small-200">
+              <s-text type="strong">{heading}</s-text>
+              {description && <s-text color="subdued">{description}</s-text>}
+              {totalSteps > 1 && (
+                <s-stack gap="small-100">
+                  <s-text color="subdued">
+                    Question {activeIndex + 1} of {totalSteps}
+                  </s-text>
+                  <s-progress value={progressPercent} max={100} />
+                </s-stack>
+              )}
+            </s-stack>
+
             {/* Current Question */}
             <s-stack gap="small">
               <s-text type="strong">

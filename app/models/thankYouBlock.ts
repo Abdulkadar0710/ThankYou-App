@@ -289,7 +289,7 @@ export const blockTemplates = {
         },
       ],
       buttonText: "Submit",
-      successMessage: "Thank you for your valuable feedback!",
+      successMessage: "Your message has been recorded successfully.",
     },
   },
 } as const;
