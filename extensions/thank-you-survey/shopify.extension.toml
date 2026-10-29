@@ -1,15 +1,15 @@
 api_version = "2026-01"
 
+[[extensions]]
 name = "Thank You - Survey Section"
+handle = "thank-you-survey"
 type = "ui_extension"
 uid = "36589f62-9892-39cb-2f34-f27a46d18b634b74a298"
 
-[[targeting]]
+[[extensions.targeting]]
 module = "./src/index.jsx"
 target = "purchase.thank-you.block.render"
 
-[capabilities]
+[extensions.capabilities]
 api_access = true
 network_access = true
-multiple = false
-
