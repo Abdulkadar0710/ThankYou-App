@@ -196,6 +196,7 @@ function TemplatePreview({ type }: { type: string }) {
     image: "/image-preview.png",
     video: "/video-preview.png",
     media: "/image-preview.png",
+    promotion: "/promotion-preview.png",
     loyalty: "/loyalty-preview.png",
     discount: "/discount-preview.png",
     subscription: "/subscription-preview.png",

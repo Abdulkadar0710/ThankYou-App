@@ -1,3 +1,3 @@
-# Thank You Loyalty Extension
+# Thank You Promotion Extension
 
-This extension renders the loyalty promotion on the thank-you page.
+This extension renders the promotion on the thank-you page.

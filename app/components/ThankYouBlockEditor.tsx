@@ -299,8 +299,8 @@ export function ThankYouBlockEditor({
                   <DiscountFields config={config} />
                 ) : type === "subscription" ? (
                   <SubscriptionFields config={config} />
-                ) : type === "loyalty" ? (
-                  <LoyaltyFields config={config} />
+                ) : type === "promotion" || type === "loyalty" ? (
+                  <PromotionFields config={config} />
                 ) : type === "checkoutUpsell" ? (
                   <CheckoutUpsellFields config={config} />
                 ) : type === "freeShippingProgress" ? (
@@ -1011,7 +1011,7 @@ function SubscriptionFields({config}: {config: ThankYouBlockConfig}) {
   );
 }
 
-function LoyaltyFields({config}: {config: ThankYouBlockConfig}) {
+function PromotionFields({config}: {config: ThankYouBlockConfig}) {
   return (
     <s-stack gap="base">
       <TextField
@@ -1061,6 +1061,8 @@ function LoyaltyFields({config}: {config: ThankYouBlockConfig}) {
     </s-stack>
   );
 }
+
+const LoyaltyFields = PromotionFields;
 
 function FreeShippingProgressFields({config}: {config: ThankYouBlockConfig}) {
   return (
@@ -1380,7 +1382,7 @@ function BlockPreview({
     );
   }
 
-  if (type === "loyalty") {
+  if (type === "promotion" || type === "loyalty") {
     return (
       <s-box padding="base" borderWidth="base" borderRadius="base">
         <s-stack gap="small">

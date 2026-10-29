@@ -302,18 +302,18 @@ export default function HelpPage() {
             </s-stack>
           </s-box>
 
-          {/* Loyalty Program */}
+          {/* Promotion */}
           <s-box padding="base" borderWidth="base" borderRadius="base">
             <s-stack gap="small">
-              <s-heading>9. Loyalty Program Block</s-heading>
+              <s-heading>9. Promotion Block</s-heading>
               <s-paragraph>
-                Drive customer retention by inviting new buyers to sign up for rewards points and loyalty perks.
+                Drive customer retention by inviting new buyers to sign up for rewards points, promotional offers, and perks.
               </s-paragraph>
               <s-box padding="small" background="subdued" borderRadius="base">
                 <s-stack gap="small-200">
                   <s-text type="strong">Configuration Fields:</s-text>
                   <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
-                    <li><strong>Loyalty:</strong> Customize headline, points badge (e.g. <em>"2x points"</em>), promotional description, and external sign-up button URL.</li>
+                    <li><strong>Promotion:</strong> Customize headline, points badge (e.g. <em>"2x points"</em>), promotional description, and external sign-up button URL.</li>
                   </ul>
                 </s-stack>
               </s-box>

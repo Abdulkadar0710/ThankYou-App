@@ -19,9 +19,15 @@ function Extension() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchActiveBlock('loyalty')
+    fetchActiveBlock('promotion')
       .then((block) => {
-        setConfig(block?.config || null);
+        if (block?.config) {
+          setConfig(block.config);
+        } else {
+          return fetchActiveBlock('loyalty').then((fallbackBlock) => {
+            setConfig(fallbackBlock?.config || null);
+          });
+        }
       })
       .catch((error) => {
         console.error(error);
@@ -46,43 +52,47 @@ function Extension() {
   }
   if (!config) return null;
 
-  const loyaltyHeading = limitText(
+  const promotionHeading = limitText(
     trimText(config.title) || 'Earn rewards on every order',
     48,
   );
-  // const loyaltyText = limitText(
-  //   textFromHtml(config.description) ||
-  //     'Join our loyalty program and start earning points today',
-  //   160,
-  // );
-   const loyaltyText = parseRichText(
+  const loyaltyHeading = promotionHeading;
+
+  const promotionText = parseRichText(
     replaceReferralVariables(
       config.description || "Join our loyalty program and start earning points today",
       config,
     ),
   );
-  const loyaltyCta = limitText(
+  const loyaltyText = promotionText;
+
+  const promotionCta = limitText(
     trimText(config.buttonText) || 'Join now',
     24,
   );
-  const loyaltyLink = trimText(config.buttonUrl);
+  const loyaltyCta = promotionCta;
+
+  const promotionLink = trimText(config.buttonUrl);
+  const loyaltyLink = promotionLink;
+
   const pointsText = limitText(
     trimText(config.pointsText) || '2x points',
     40,
   );
   const validUntil = limitText(trimText(config.validUntil), 60);
 
-  const trackLoyaltyClick = () => {
+  const trackPromotionClick = () => {
     trackThankYouClick(
-      'loyalty_click',
+      'promotion_click',
       {
-        ctaText: loyaltyCta,
-        ctaLink: loyaltyLink,
-        itemTitle: loyaltyHeading,
-        itemUrl: loyaltyLink,
+        ctaText: promotionCta,
+        ctaLink: promotionLink,
+        itemTitle: promotionHeading,
+        itemUrl: promotionLink,
       },
     );
   };
+  const trackLoyaltyClick = trackPromotionClick;
 
   return (
     <s-box padding="base" border="base" borderRadius="large">

@@ -7,6 +7,7 @@ export type ThankYouBlockType =
   | "checkoutUpsell"
   | "freeShippingProgress"
   | "giftOptions"
+  | "promotion"
   | "loyalty"
   | "discount"
   | "subscription"
@@ -180,11 +181,11 @@ export const blockTemplates = {
       discountCode: "",
     },
   },
-  loyalty: {
-    type: "loyalty",
-    title: "Loyalty Offer",
+  promotion: {
+    type: "promotion",
+    title: "Promotion",
     description: "Promote points, rewards, or account signups after purchase.",
-    defaultName: "Loyalty Offer",
+    defaultName: "Promotion",
     defaultConfig: {
       title: "Join our loyalty program",
       description:
@@ -194,6 +195,22 @@ export const blockTemplates = {
       pointsText: "2x points",
       validUntil: "",
     },
+  },
+  loyalty: {
+    type: "promotion",
+    title: "Promotion",
+    description: "Promote points, rewards, or account signups after purchase.",
+    defaultName: "Promotion",
+    defaultConfig: {
+      title: "Join our loyalty program",
+      description:
+        "Earn 2x points on future purchases and unlock member-only rewards.",
+      buttonText: "Join now",
+      buttonUrl: "",
+      pointsText: "2x points",
+      validUntil: "",
+    },
+    deprecated: true,
   },
   subscription: {
     type: "subscription",
@@ -238,6 +255,7 @@ export function isBlockType(value: unknown): value is ThankYouBlockType {
     value === "checkoutUpsell" ||
     value === "freeShippingProgress" ||
     value === "giftOptions" ||
+    value === "promotion" ||
     value === "loyalty" ||
     value === "discount" ||
     value === "subscription" ||
@@ -291,7 +309,7 @@ export function configFromForm(
     };
   }
 
-  if (type === "loyalty") {
+  if (type === "promotion" || type === "loyalty") {
     return {
       title: field(formData, "title"),
       description: field(formData, "description"),
@@ -434,7 +452,7 @@ export function validateBlockForm(
     requireText(errors, formData, "discountCode", "Discount code");
   }
 
-  if (type === "loyalty") {
+  if (type === "promotion" || type === "loyalty") {
     requireText(errors, formData, "title", "Title");
     requireText(errors, formData, "description", "Description");
     requireText(errors, formData, "pointsText", "Points badge");
