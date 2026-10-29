@@ -1,7 +1,7 @@
-import type {StandardApi} from '@shopify/ui-extensions/checkout';
+import '@shopify/ui-extensions';
 
-declare global {
-  const shopify: StandardApi<'purchase.thank-you.block.render'>;
+//@ts-ignore
+declare module './src/index.jsx' {
+  const shopify: import('@shopify/ui-extensions/purchase.thank-you.block.render').Api;
+  const globalThis: { shopify: typeof shopify };
 }
-
-export {};
