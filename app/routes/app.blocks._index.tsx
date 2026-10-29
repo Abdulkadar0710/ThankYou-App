@@ -207,6 +207,7 @@ function TemplatePreview({ type }: { type: string }) {
     freeShippingProgress: "Free Shipping Progress Bar",
     giftOptions: "Gift Options",
     howDidYouHear: "How did you hear about us?",
+    survey: "Customer Survey",
   };
 
   if (!previewImages[type]) {

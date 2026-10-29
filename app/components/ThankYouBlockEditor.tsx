@@ -4,7 +4,9 @@ import type {
   ProductConditionValue,
   ThankYouBlockConfig,
   ThankYouBlockType,
-  CheckoutUpsellSource
+  CheckoutUpsellSource,
+  SurveyQuestion,
+  SurveyQuestionType,
 } from "../models/thankYouBlock";
 import {useAppBridge} from "@shopify/app-bridge-react";
 import {blockTemplates, validateBlockForm} from "../models/thankYouBlock";
@@ -309,6 +311,8 @@ export function ThankYouBlockEditor({
                   <GiftOptionsFields config={config} />
                 ) : type === "howDidYouHear" ? (
                   <HowDidYouHearFields config={config} />
+                ) : type === "survey" ? (
+                  <SurveyFields config={config} />
                 ) : (
                   <UpsellFields config={config} />
                 )}
@@ -967,6 +971,282 @@ function HowDidYouHearFields({config}: {config: ThankYouBlockConfig}) {
   );
 }
 
+function SurveyFields({config}: {config: ThankYouBlockConfig}) {
+  const defaultQuestions: SurveyQuestion[] = [
+    {
+      id: "q1",
+      question: "How did you find your shopping experience today?",
+      type: "options",
+      options: ["Excellent", "Good", "Average", "Needs Improvement"],
+      required: true,
+    },
+    {
+      id: "q2",
+      question: "Any suggestions or comments for us?",
+      type: "text",
+      placeholder: "Type your feedback here...",
+      required: false,
+    },
+  ];
+
+  const initialQuestions = config.questions?.length
+    ? config.questions
+    : defaultQuestions;
+
+  const [questions, setQuestions] = useState<SurveyQuestion[]>(initialQuestions);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.value = JSON.stringify(questions);
+    }
+  }, [questions]);
+
+  const addQuestion = () => {
+    const newQ: SurveyQuestion = {
+      id: `q_${Date.now()}`,
+      question: "",
+      type: "options",
+      options: ["Option 1", "Option 2"],
+      required: false,
+    };
+    setQuestions([...questions, newQ]);
+  };
+
+  const removeQuestion = (idx: number) => {
+    setQuestions(questions.filter((_, i) => i !== idx));
+  };
+
+  const updateQuestionField = <K extends keyof SurveyQuestion>(
+    idx: number,
+    field: K,
+    val: SurveyQuestion[K],
+  ) => {
+    const copy = [...questions];
+    copy[idx] = {...copy[idx], [field]: val};
+    setQuestions(copy);
+  };
+
+  const addOptionToQuestion = (qIdx: number) => {
+    const copy = [...questions];
+    const currentOpts = copy[qIdx].options || [];
+    copy[qIdx] = {
+      ...copy[qIdx],
+      options: [...currentOpts, `Option ${currentOpts.length + 1}`],
+    };
+    setQuestions(copy);
+  };
+
+  const updateOptionInQuestion = (qIdx: number, optIdx: number, val: string) => {
+    const copy = [...questions];
+    const currentOpts = [...(copy[qIdx].options || [])];
+    currentOpts[optIdx] = val;
+    copy[qIdx] = {...copy[qIdx], options: currentOpts};
+    setQuestions(copy);
+  };
+
+  const removeOptionFromQuestion = (qIdx: number, optIdx: number) => {
+    const copy = [...questions];
+    const currentOpts = (copy[qIdx].options || []).filter((_, i) => i !== optIdx);
+    copy[qIdx] = {...copy[qIdx], options: currentOpts};
+    setQuestions(copy);
+  };
+
+  return (
+    <s-stack gap="base">
+      <TextField
+        label="Survey Heading"
+        name="surveyHeading"
+        value={config.surveyHeading || "Customer Feedback Survey"}
+        maxLength={100}
+        required
+      />
+
+      <TextField
+        label="Description / Subtitle"
+        name="surveyDescription"
+        value={
+          config.surveyDescription ||
+          "We value your opinion! Please take a quick moment to help us improve."
+        }
+        maxLength={200}
+      />
+
+      <input
+        ref={hiddenInputRef}
+        type="hidden"
+        name="questions"
+        defaultValue={JSON.stringify(questions)}
+      />
+
+      <s-stack gap="small">
+        <label style={labelStyle}>Survey Questions ({questions.length})</label>
+        <s-text color="subdued">
+          For each question, select whether to give customers multiple choice options or a plain text field.
+        </s-text>
+
+        {questions.map((q, qIdx) => (
+          <div
+            key={q.id || qIdx}
+            style={{
+              border: "1px solid #dcdfe3",
+              borderRadius: "8px",
+              padding: "16px",
+              background: "#fafbfc",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+              <span style={{fontWeight: 650, color: "#202223"}}>
+                Question {qIdx + 1}
+              </span>
+              {questions.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(qIdx)}
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    color: "#d82c0d",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                  }}
+                >
+                  ✕ Remove Question
+                </button>
+              )}
+            </div>
+
+            <div>
+              <label style={{...labelStyle, fontSize: "13px"}}>Question Prompt</label>
+              <input
+                style={fieldStyle}
+                value={q.question}
+                placeholder="e.g. How was your delivery experience?"
+                onChange={(e) => updateQuestionField(qIdx, "question", e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", alignItems: "end"}}>
+              <div>
+                <label style={{...labelStyle, fontSize: "13px"}}>Answer Type</label>
+                <select
+                  style={fieldStyle}
+                  value={q.type}
+                  onChange={(e) =>
+                    updateQuestionField(
+                      qIdx,
+                      "type",
+                      e.target.value as SurveyQuestionType,
+                    )
+                  }
+                >
+                  <option value="options">Options (Multiple Choice)</option>
+                  <option value="text">Plain Text Field</option>
+                </select>
+              </div>
+
+              <div style={{paddingBottom: "8px"}}>
+                <label style={{display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 550}}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(q.required)}
+                    onChange={(e) => updateQuestionField(qIdx, "required", e.target.checked)}
+                  />
+                  Required response
+                </label>
+              </div>
+            </div>
+
+            {q.type === "options" ? (
+              <div style={{marginTop: "4px"}}>
+                <label style={{...labelStyle, fontSize: "13px"}}>Choices / Options</label>
+                <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                  {(q.options || []).map((opt, optIdx) => (
+                    <div key={optIdx} style={{display: "flex", gap: "8px", alignItems: "center"}}>
+                      <input
+                        style={fieldStyle}
+                        value={opt}
+                        placeholder={`Option ${optIdx + 1}`}
+                        onChange={(e) => updateOptionInQuestion(qIdx, optIdx, e.target.value)}
+                        required
+                      />
+                      {(q.options || []).length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOptionFromQuestion(qIdx, optIdx)}
+                          style={{
+                            background: "transparent",
+                            border: 0,
+                            color: "#d82c0d",
+                            cursor: "pointer",
+                            fontSize: "16px",
+                            padding: "4px 8px",
+                          }}
+                          title="Remove choice"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => addOptionToQuestion(qIdx)}
+                      style={{...secondaryButtonStyle, padding: "6px 12px", fontSize: "12px"}}
+                    >
+                      + Add choice
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label style={{...labelStyle, fontSize: "13px"}}>Placeholder Text (Optional)</label>
+                <input
+                  style={fieldStyle}
+                  value={q.placeholder || ""}
+                  placeholder="e.g. Type your answer here..."
+                  onChange={(e) => updateQuestionField(qIdx, "placeholder", e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        <div>
+          <button
+            type="button"
+            onClick={addQuestion}
+            style={secondaryButtonStyle}
+          >
+            + Add Another Question
+          </button>
+        </div>
+      </s-stack>
+
+      <TextField
+        label="Button text"
+        name="buttonText"
+        value={config.buttonText || "Submit Survey"}
+        maxLength={40}
+      />
+
+      <TextField
+        label="Success message"
+        name="successMessage"
+        value={config.successMessage || "Thank you for your valuable feedback!"}
+        maxLength={120}
+      />
+    </s-stack>
+  );
+}
+
 function SubscriptionFields({config}: {config: ThankYouBlockConfig}) {
   return (
     <s-stack gap="base">
@@ -1396,6 +1676,40 @@ function BlockPreview({
           </s-text>
           <s-button>{config.buttonText || "Join now"}</s-button>
           {config.validUntil && <s-text color="subdued">{config.validUntil}</s-text>}
+        </s-stack>
+      </s-box>
+    );
+  }
+
+  if (type === "survey") {
+    const qs = config.questions || [];
+    return (
+      <s-box padding="base" borderWidth="base" borderRadius="base">
+        <s-stack gap="base">
+          <s-text type="strong">{config.surveyHeading || "Customer Feedback Survey"}</s-text>
+          {config.surveyDescription && (
+            <s-text color="subdued">{config.surveyDescription}</s-text>
+          )}
+          {qs.map((q, idx) => (
+            <s-stack key={q.id || idx} gap="small-200">
+              <s-text type="strong">
+                {idx + 1}. {q.question || "Survey Question"}
+                {q.required && " *"}
+              </s-text>
+              {q.type === "text" ? (
+                <s-box padding="small" borderWidth="base" borderRadius="base">
+                  <s-text color="subdued">{q.placeholder || "Customer text response..."}</s-text>
+                </s-box>
+              ) : (
+                <s-box padding="small" borderWidth="base" borderRadius="base">
+                  <s-text color="subdued">
+                    {(q.options || []).join(" | ") || "Options list"}
+                  </s-text>
+                </s-box>
+              )}
+            </s-stack>
+          ))}
+          <s-button>{config.buttonText || "Submit Survey"}</s-button>
         </s-stack>
       </s-box>
     );

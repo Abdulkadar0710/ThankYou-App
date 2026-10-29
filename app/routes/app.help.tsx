@@ -339,6 +339,28 @@ export default function HelpPage() {
               </s-box>
             </s-stack>
           </s-box>
+
+          {/* Customer Survey */}
+          <s-box padding="base" borderWidth="base" borderRadius="base">
+            <s-stack gap="small">
+              <s-heading>11. Customer Survey Block</s-heading>
+              <s-paragraph>
+                Gather multi-question customer feedback on the thank-you page. You can customize each question to offer multiple-choice options or an open plain text input.
+              </s-paragraph>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-stack gap="small-200">
+                  <s-text type="strong">Configuration Fields:</s-text>
+                  <ul style={{ margin: "4px 0 0 18px", padding: 0, lineHeight: 1.6 }}>
+                    <li><strong>Survey Heading &amp; Subtitle:</strong> Survey title and descriptive message explaining the purpose.</li>
+                    <li><strong>Flexible Questions:</strong> Add as many questions as needed. For each question, decide whether to provide <em>Options (Multiple Choice)</em> or a <em>Plain Text Field</em>.</li>
+                    <li><strong>Custom Choices:</strong> When using Options, dynamically configure custom response choices.</li>
+                    <li><strong>Required Responses:</strong> Toggle whether an individual question is mandatory or optional before submission.</li>
+                    <li><strong>Storage &amp; Analytics:</strong> All responses are automatically recorded in the database and linked to the customer's order ID.</li>
+                  </ul>
+                </s-stack>
+              </s-box>
+            </s-stack>
+          </s-box>
         </s-stack>
       </s-section>
 

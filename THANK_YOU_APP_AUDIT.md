@@ -17,6 +17,7 @@ Here is a comprehensive audit of all features in the **Thank-You App**, covering
 | **Email Subscription**                           | Thank-You Page       | `SubscriptionFields`         | `/api/subscription-click`     | Active (`thank-you-subscription`)    |
 | **Promotion**                                    | Thank-You Page       | `PromotionFields`            | `/api/blocks`                 | Active (`thank-you-promotion`)       |
 | **How Did You Hear About Us? (Survey)**          | Thank-You Page       | `HowDidYouHearFields`        | `/api/how-did-you-hear`       | Active (`how-did-you-hear-about-us`) |
+| **Customer Survey (Multi-Question)**             | Thank-You Page       | `SurveyFields`               | `/api/survey-response`        | Active (`thank-you-survey`)          |
 | **Checkout Upsell**                              | Checkout Page        | `CheckoutUpsellFields`       | `/api/blocks`                 | Active (`checkout-upsell`)           |
 | **Free Shipping Progress Bar**                   | Checkout Page        | `FreeShippingProgressFields` | `/api/shipping-threshold`     | Active (`free-shipping-progress`)    |
 | **Gift Options (Wrap & Message)**                | Checkout Page        | `GiftOptionsFields`          | `/api/gift-wrap-variants`     | Active (`gift-options`)              |

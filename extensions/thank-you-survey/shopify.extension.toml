@@ -1,0 +1,14 @@
+api_version = "2026-01"
+
+name = "Customer Survey"
+type = "ui_extension"
+handle = "thank-you-survey"
+
+[[targeting]]
+module = "./src/index.jsx"
+target = "purchase.thank-you.block.render"
+
+[capabilities]
+api_access = true
+network_access = true
+multiple = false

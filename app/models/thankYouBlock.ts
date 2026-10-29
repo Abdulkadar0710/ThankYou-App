@@ -11,7 +11,8 @@ export type ThankYouBlockType =
   | "loyalty"
   | "discount"
   | "subscription"
-  | "howDidYouHear";
+  | "howDidYouHear"
+  | "survey";
 
 export type CheckoutUpsellProduct = {
   id: string;
@@ -82,6 +83,20 @@ export type ThankYouBlockConfig = {
   emailPlaceholder?: string;
   successMessage?: string;
   options?: string[];
+  surveyHeading?: string;
+  surveyDescription?: string;
+  questions?: SurveyQuestion[];
+};
+
+export type SurveyQuestionType = "options" | "text";
+
+export type SurveyQuestion = {
+  id: string;
+  question: string;
+  type: SurveyQuestionType;
+  options?: string[];
+  placeholder?: string;
+  required?: boolean;
 };
 
 export const blockTemplates = {
@@ -243,6 +258,39 @@ export const blockTemplates = {
       successMessage: "Thank you for your feedback!",
     },
   },
+  survey: {
+    type: "survey",
+    title: "Customer Survey",
+    description: "Gather customer insights with multiple-choice questions or open text fields.",
+    defaultName: "Customer Survey",
+    defaultConfig: {
+      surveyHeading: "Customer Feedback Survey",
+      surveyDescription: "We value your opinion! Please take a quick moment to help us improve.",
+      questions: [
+        {
+          id: "q1",
+          question: "How did you find your shopping experience today?",
+          type: "options",
+          options: [
+            "Excellent",
+            "Good",
+            "Average",
+            "Needs Improvement",
+          ],
+          required: true,
+        },
+        {
+          id: "q2",
+          question: "Any suggestions or comments for us?",
+          type: "text",
+          placeholder: "Type your feedback here...",
+          required: false,
+        },
+      ],
+      buttonText: "Submit Survey",
+      successMessage: "Thank you for your valuable feedback!",
+    },
+  },
 } as const;
 
 export function isBlockType(value: unknown): value is ThankYouBlockType {
@@ -259,7 +307,8 @@ export function isBlockType(value: unknown): value is ThankYouBlockType {
     value === "loyalty" ||
     value === "discount" ||
     value === "subscription" ||
-    value === "howDidYouHear"
+    value === "howDidYouHear" ||
+    value === "survey"
   );
 }
 
@@ -398,6 +447,60 @@ export function configFromForm(
     };
   }
 
+  if (type === "survey") {
+    let questions: SurveyQuestion[] = [];
+    try {
+      const rawQuestions = formData.get("questions");
+      if (typeof rawQuestions === "string" && rawQuestions.trim()) {
+        const parsed = JSON.parse(rawQuestions);
+        if (Array.isArray(parsed)) {
+          questions = parsed
+            .map((q, idx) => {
+              const qType: SurveyQuestionType =
+                q.type === "text" ? "text" : "options";
+              const opts = Array.isArray(q.options)
+                ? q.options
+                    .map((opt: unknown) => String(opt || "").trim())
+                    .filter(Boolean)
+                : ["Option 1", "Option 2"];
+              return {
+                id: String(q.id || `q_${idx + 1}`),
+                question: String(q.question || "").trim(),
+                type: qType,
+                options: opts.length ? opts : ["Option 1", "Option 2"],
+                placeholder: String(q.placeholder || "").trim(),
+                required: Boolean(q.required),
+              };
+            })
+            .filter((q) => q.question.length > 0);
+        }
+      }
+    } catch {
+      questions = [];
+    }
+
+    if (!questions.length) {
+      questions = [
+        {
+          id: "q1",
+          question: "How did you find your shopping experience today?",
+          type: "options",
+          options: ["Excellent", "Good", "Average", "Needs Improvement"],
+          required: true,
+        },
+      ];
+    }
+
+    return {
+      surveyHeading: field(formData, "surveyHeading") || "Customer Feedback Survey",
+      surveyDescription: field(formData, "surveyDescription"),
+      questions,
+      buttonText: field(formData, "buttonText") || "Submit Survey",
+      successMessage:
+        field(formData, "successMessage") || "Thank you for your valuable feedback!",
+    };
+  }
+
   return {
     upsellHeading: field(formData, "upsellHeading"),
     emptyMessage: field(formData, "emptyMessage"),
@@ -525,6 +628,18 @@ export function validateBlockForm(
 
   if (type === "howDidYouHear") {
     requireText(errors, formData, "heading", "Heading");
+  }
+
+  if (type === "survey") {
+    requireText(errors, formData, "surveyHeading", "Survey heading");
+    try {
+      const rawQuestions = formData.get("questions");
+      if (!rawQuestions || !JSON.parse(String(rawQuestions)).length) {
+        errors.push("At least one question is required for the survey.");
+      }
+    } catch {
+      errors.push("Invalid question data format.");
+    }
   }
 
   if (type === "upsell" || type === "checkoutUpsell") {
