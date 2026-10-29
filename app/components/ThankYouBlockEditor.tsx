@@ -975,14 +975,20 @@ function SurveyFields({config}: {config: ThankYouBlockConfig}) {
   const defaultQuestions: SurveyQuestion[] = [
     {
       id: "q1",
-      question: "How did you find your shopping experience today?",
+      question: "How satisfied are you with your purchase?",
       type: "options",
-      options: ["Excellent", "Good", "Average", "Needs Improvement"],
+      options: [
+        "Very satisfied",
+        "Satisfied",
+        "Neutral",
+        "Dissatisfied",
+        "Very dissatisfied",
+      ],
       required: true,
     },
     {
       id: "q2",
-      question: "Any suggestions or comments for us?",
+      question: "What could we have done better?",
       type: "text",
       placeholder: "Type your feedback here...",
       required: false,
@@ -1683,33 +1689,66 @@ function BlockPreview({
 
   if (type === "survey") {
     const qs = config.questions || [];
+    const firstQ = qs[0];
     return (
       <s-box padding="base" borderWidth="base" borderRadius="base">
         <s-stack gap="base">
-          <s-text type="strong">{config.surveyHeading || "Customer Feedback Survey"}</s-text>
-          {config.surveyDescription && (
-            <s-text color="subdued">{config.surveyDescription}</s-text>
-          )}
-          {qs.map((q, idx) => (
-            <s-stack key={q.id || idx} gap="small-200">
+          <s-stack gap="small-200">
+            <s-text type="strong">{config.surveyHeading || "Purchase Satisfaction"}</s-text>
+            {config.surveyDescription && (
+              <s-text color="subdued">{config.surveyDescription}</s-text>
+            )}
+            {qs.length > 1 && (
+              <s-stack gap="small-100">
+                <s-text color="subdued">Question 1 of {qs.length}</s-text>
+                <div style={{height: 4, width: "100%", background: "#e0e0e0", borderRadius: 2, overflow: "hidden"}}>
+                  <div style={{height: "100%", width: `${Math.round((1 / qs.length) * 100)}%`, background: "#008060"}} />
+                </div>
+              </s-stack>
+            )}
+          </s-stack>
+
+          {firstQ ? (
+            <s-stack gap="small">
               <s-text type="strong">
-                {idx + 1}. {q.question || "Survey Question"}
-                {q.required && " *"}
+                {firstQ.question || "How satisfied are you with your purchase?"}
+                {firstQ.required && " *"}
               </s-text>
-              {q.type === "text" ? (
-                <s-box padding="small" borderWidth="base" borderRadius="base">
-                  <s-text color="subdued">{q.placeholder || "Customer text response..."}</s-text>
-                </s-box>
+
+              {firstQ.type === "options" ? (
+                <s-stack gap="small-200">
+                  {(firstQ.options || ["Very satisfied", "Satisfied", "Neutral"]).map((opt, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #dcdcdc",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        background: i === 0 ? "#f8f9fa" : "#fff",
+                      }}
+                    >
+                      <input type="radio" checked={i === 0} readOnly name="preview_choice" />
+                      <span style={{fontSize: 14}}>{opt}</span>
+                    </div>
+                  ))}
+                </s-stack>
               ) : (
-                <s-box padding="small" borderWidth="base" borderRadius="base">
-                  <s-text color="subdued">
-                    {(q.options || []).join(" | ") || "Options list"}
-                  </s-text>
-                </s-box>
+                <textarea
+                  readOnly
+                  placeholder={firstQ.placeholder || "Type your answer here..."}
+                  rows={3}
+                  style={fieldStyle}
+                />
               )}
             </s-stack>
-          ))}
-          <s-button>{config.buttonText || "Submit Survey"}</s-button>
+          ) : null}
+
+          <div style={{display: "flex", justifyContent: "flex-end"}}>
+            <s-button>{qs.length > 1 ? "Next" : (config.buttonText || "Submit")}</s-button>
+          </div>
         </s-stack>
       </s-box>
     );

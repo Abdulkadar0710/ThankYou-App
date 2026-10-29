@@ -20,6 +20,7 @@ export default () => {
 function Extension() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -71,15 +72,25 @@ function Extension() {
 
   if (!config) return null;
 
-  const heading = config.surveyHeading?.trim() || 'Customer Feedback Survey';
+  const heading = config.surveyHeading?.trim() || 'Purchase Satisfaction';
   const description = config.surveyDescription?.trim() || '';
-  const questions = Array.isArray(config.questions) && config.questions.length
+  const rawQuestions = Array.isArray(config.questions) && config.questions.length
     ? config.questions
     : [];
 
+  // Filter valid questions
+  const questions = rawQuestions.filter(
+    (q) => q && typeof q === 'object' && typeof q.question === 'string' && q.question.trim().length > 0
+  );
+
   if (!questions.length) return null;
 
-  const buttonText = config.buttonText?.trim() || 'Submit Survey';
+  const totalSteps = questions.length;
+  const activeIndex = Math.min(Math.max(0, currentStep), totalSteps - 1);
+  const currentQ = questions[activeIndex];
+  const currentAns = answers[currentQ?.id] || '';
+
+  const buttonText = config.buttonText?.trim() || 'Submit';
   const successMessage =
     config.successMessage?.trim() || 'Thank you for your valuable feedback!';
 
@@ -90,15 +101,26 @@ function Extension() {
     }));
   };
 
-  // Check required validation
-  const canSubmit = questions.every((q) => {
-    if (!q.required) return true;
-    const ans = answers[q.id];
-    return typeof ans === 'string' && ans.trim().length > 0;
-  });
+  const isCurrentStepValid = () => {
+    if (!currentQ?.required) return true;
+    return typeof currentAns === 'string' && currentAns.trim().length > 0;
+  };
+
+  const handleNext = () => {
+    if (!isCurrentStepValid()) return;
+    if (activeIndex < totalSteps - 1) {
+      setCurrentStep(activeIndex + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (activeIndex > 0) {
+      setCurrentStep(activeIndex - 1);
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!canSubmit || submitting) return;
+    if (!isCurrentStepValid() || submitting) return;
 
     setSubmitting(true);
 
@@ -148,15 +170,24 @@ function Extension() {
     setSubmitting(false);
   };
 
+  const progressPercent = Math.round(((activeIndex + 1) / totalSteps) * 100);
+
   return (
     <s-box padding="base" border="base" borderRadius="base">
       <s-stack gap="base">
-        <div>
+        {/* Header with Title and Step Progress */}
+        <s-stack gap="small-200">
           <s-text type="strong">{heading}</s-text>
-          {description && (
-            <s-text color="subdued">{description}</s-text>
+          {description && <s-text color="subdued">{description}</s-text>}
+          {!submitted && totalSteps > 1 && (
+            <s-stack gap="small-100">
+              <s-text color="subdued">
+                Question {activeIndex + 1} of {totalSteps}
+              </s-text>
+              <s-progress value={progressPercent} max={100} />
+            </s-stack>
           )}
-        </div>
+        </s-stack>
 
         {submitted ? (
           <s-box padding="base" background="subdued" borderRadius="base">
@@ -175,53 +206,80 @@ function Extension() {
           </s-box>
         ) : (
           <s-stack gap="base">
-            {questions.map((q, idx) => {
-              const currentVal = answers[q.id] || '';
-              return (
-                <s-stack key={q.id || idx} gap="small-200">
-                  <s-text type="strong">
-                    {idx + 1}. {q.question}
-                    {q.required && ' *'}
-                  </s-text>
+            {/* Current Question */}
+            <s-stack gap="small">
+              <s-text type="strong">
+                {currentQ.question}
+                {currentQ.required ? ' *' : ''}
+              </s-text>
 
-                  {q.type === 'options' ? (
-                    <s-select
-                      label={`Select answer for question ${idx + 1}`}
-                      value={currentVal}
-                      onChange={(e) => {
-                        const val = e?.target?.value || '';
-                        handleAnswerChange(q.id, val);
-                      }}
-                    >
-                      <s-option value="">-- Choose an option --</s-option>
-                      {(q.options || []).map((opt, optIdx) => (
-                        <s-option key={optIdx} value={opt}>
-                          {opt}
-                        </s-option>
-                      ))}
-                    </s-select>
-                  ) : (
-                    <s-text-area
-                      label={`Type answer for question ${idx + 1}`}
-                      placeholder={q.placeholder || 'Type your answer here...'}
-                      value={currentVal}
-                      onInput={(e) => {
-                        const val = e?.target?.value || '';
-                        handleAnswerChange(q.id, val);
-                      }}
-                      rows={3}
-                    />
-                  )}
-                </s-stack>
-              );
-            })}
+              {currentQ.type === 'options' ? (
+                <s-choice-list
+                  name={`survey_choice_${currentQ.id}`}
+                  variant="block"
+                  values={currentAns ? [currentAns] : []}
+                  onChange={(e) => {
+                    const selected =
+                      e?.target?.values?.[0] || e?.target?.value || '';
+                    handleAnswerChange(currentQ.id, selected);
+                  }}
+                >
+                  {(currentQ.options || []).map((opt, optIdx) => (
+                    <s-choice key={optIdx} value={opt}>
+                      {opt}
+                    </s-choice>
+                  ))}
+                </s-choice-list>
+              ) : (
+                <s-text-area
+                  label="Your response"
+                  placeholder={currentQ.placeholder || 'Type your answer here...'}
+                  value={currentAns}
+                  onInput={(e) => {
+                    const val = e?.target?.value || '';
+                    handleAnswerChange(currentQ.id, val);
+                  }}
+                  rows={3}
+                />
+              )}
+            </s-stack>
 
-            <s-button
-              disabled={!canSubmit || submitting}
-              onClick={handleSubmit}
+            {/* Navigation & Action Buttons */}
+            <s-grid
+              gridTemplateColumns={activeIndex > 0 ? 'auto 1fr auto' : '1fr auto'}
+              gap="small"
             >
-              {submitting ? 'Submitting...' : buttonText}
-            </s-button>
+              {activeIndex > 0 ? (
+                <s-button
+                  variant="secondary"
+                  disabled={submitting}
+                  onClick={handlePrev}
+                >
+                  Previous
+                </s-button>
+              ) : null}
+
+              {/* Spacer */}
+              <s-box />
+
+              {activeIndex < totalSteps - 1 ? (
+                <s-button
+                  variant="primary"
+                  disabled={!isCurrentStepValid()}
+                  onClick={handleNext}
+                >
+                  Next
+                </s-button>
+              ) : (
+                <s-button
+                  variant="primary"
+                  disabled={!isCurrentStepValid() || submitting}
+                  onClick={handleSubmit}
+                >
+                  {submitting ? 'Submitting...' : buttonText}
+                </s-button>
+              )}
+            </s-grid>
           </s-stack>
         )}
       </s-stack>
