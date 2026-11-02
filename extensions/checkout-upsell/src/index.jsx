@@ -6,6 +6,7 @@ import {useEffect, useMemo, useState} from 'preact/hooks';
 import {fetchActiveBlock} from '../../shared/blocks';
 import {claimExtensionRender} from '../../shared/render-once';
 import {limitText, trimText} from '../../shared/text';
+import {trackClick} from '../../shared/analytics';
 
 export default () => {
   try {
@@ -143,6 +144,9 @@ function CheckoutUpsellProduct({product}) {
         type: 'addCartLine',
         merchandiseId: selectedVariant.id,
         quantity,
+        attributes: [
+          { key: '_upsell_source', value: 'checkout_upsell' },
+        ],
       });
 
       if (result?.type === 'error') {
@@ -152,6 +156,12 @@ function CheckoutUpsellProduct({product}) {
       }
 
       setTone('success');
+      trackClick('checkout_upsell_click', {
+        ctaText: 'Add',
+        itemId: product.id,
+        itemTitle: product.title,
+        variantId: selectedVariant.id,
+      });
       // setMessage('Added to cart.');
     } catch (error) {
       setTone('critical');

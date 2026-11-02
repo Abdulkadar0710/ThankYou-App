@@ -22,75 +22,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       ? payload.discount_codes.map((d: {code: string}) => d.code).filter(Boolean)
       : [];
 
-    let isRepeatCustomer = false;
-    let initialOrderId = orderId;
-    let returnDays: number | null = null;
-    let redeemedCode: string | null = null;
-
-    if (customerId) {
-      const existingCustomer = await db.customerRetentionLog.findUnique({
-        where: {
-          shop_customerId: {
-            shop,
-            customerId,
-          },
-        },
-      });
-
-      if (existingCustomer) {
-        isRepeatCustomer = true;
-        initialOrderId = existingCustomer.initialOrderId;
-        const diffMs = Date.now() - new Date(existingCustomer.initialOrderDate).getTime();
-        returnDays = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-
-        await db.customerRetentionLog.update({
-          where: { id: existingCustomer.id },
-          data: {
-            totalOrdersCount: { increment: 1 },
-            totalLifetimeValue: { increment: orderPrice },
-            lastPurchaseDate: new Date(),
-          },
-        });
-      } else {
-        await db.customerRetentionLog.create({
-          data: {
-            shop,
-            customerId,
-            customerEmail,
-            initialOrderId: orderId,
-            totalOrdersCount: 1,
-            totalLifetimeValue: orderPrice,
-          },
-        });
-      }
-    }
+    const financialStatus = payload.financial_status
+      ? payload.financial_status.toUpperCase()
+      : "PAID";
+    const orderStatus = payload.cancelled_at ? "CANCELLED" : financialStatus;
 
     // Check discount code redemptions
     if (discountCodes.length) {
-      redeemedCode = discountCodes[0];
-      const matchingRetention = await db.customerRetentionLog.findFirst({
-        where: {
-          shop,
-          discountCodeIssued: redeemedCode,
-        },
-      });
-
-      if (matchingRetention) {
-        await db.customerRetentionLog.update({
-          where: { id: matchingRetention.id },
-          data: {
-            discountCodeRedeemed: true,
-            redeemedOrderId: orderId,
-          },
-        });
-      }
-
-      const existingDiscount = await db.upsellConversion.findFirst({
+      const redeemedCode = discountCodes[0];
+      const existingDiscount = await db.earningsLog.findFirst({
         where: { shop, orderId, featureType: "DISCOUNT_CODE" },
       });
 
       if (!existingDiscount) {
-        await db.upsellConversion.create({
+        await db.earningsLog.create({
           data: {
             shop,
             orderId,
@@ -102,10 +47,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             amount: orderPrice,
             currency,
             discountCode: redeemedCode,
-            isRepeatPurchase: isRepeatCustomer,
-            firstOrderId: initialOrderId,
-            returnIntervalDays: returnDays,
-            status: "COMPLETED",
+            status: orderStatus,
           },
         });
       }
@@ -130,16 +72,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
 
     if (hasGiftWrapAttr || giftWrapLineItem) {
-      const giftWrapAmount = giftWrapLineItem
+      const unitPrice = giftWrapLineItem
         ? parseFloat(giftWrapLineItem.price || "5.0") || 5.0
         : 5.0;
+      const qty = giftWrapLineItem?.quantity || 1;
+      const giftWrapAmount = unitPrice * qty;
 
-      const existingGiftWrap = await db.upsellConversion.findFirst({
+      const giftStyleAttr = noteAttributes.find(
+        (attr: {name?: string; key?: string; value?: string}) =>
+          (attr.name === "Gift wrap style" || attr.key === "Gift wrap style" || attr.name === "Gift style" || attr.key === "Gift style") && attr.value,
+      )?.value;
+
+      const variantDetail =
+        giftWrapLineItem?.variant_title && giftWrapLineItem.variant_title !== "Default Title"
+          ? giftWrapLineItem.variant_title
+          : (giftWrapLineItem?.name && giftWrapLineItem.name.includes(" - "))
+          ? giftWrapLineItem.name.split(" - ").slice(1).join(" - ").trim()
+          : giftStyleAttr || null;
+
+      const exactGiftTitle = variantDetail
+        ? `Gift Wrap: ${variantDetail}`
+        : (giftWrapLineItem?.name || giftWrapLineItem?.title || "Gift Wrap: Standard");
+
+      const existingGiftWrap = await db.earningsLog.findFirst({
         where: { shop, orderId, featureType: "GIFT_WRAP" },
       });
 
       if (!existingGiftWrap) {
-        await db.upsellConversion.create({
+        await db.earningsLog.create({
           data: {
             shop,
             orderId,
@@ -147,12 +107,77 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             customerId,
             customerEmail,
             featureType: "GIFT_WRAP",
-            itemTitle: giftWrapLineItem?.title || giftWrapLineItem?.name || "Gift Wrap Option",
+            itemTitle: exactGiftTitle,
+            variantId: giftWrapLineItem?.variant_id ? `gid://shopify/ProductVariant/${giftWrapLineItem.variant_id}` : null,
+            quantity: qty,
             amount: giftWrapAmount,
             currency,
-            status: "COMPLETED",
+            status: orderStatus,
           },
         });
+      } else if (existingGiftWrap.itemTitle !== exactGiftTitle && !exactGiftTitle.includes("Option")) {
+        await db.earningsLog.update({
+          where: { id: existingGiftWrap.id },
+          data: {
+            itemTitle: exactGiftTitle,
+            variantId: giftWrapLineItem?.variant_id ? `gid://shopify/ProductVariant/${giftWrapLineItem.variant_id}` : existingGiftWrap.variantId,
+            amount: giftWrapAmount || existingGiftWrap.amount,
+            status: orderStatus,
+          },
+        });
+      }
+    }
+
+    // Check Pre-Purchase Checkout Upsell line items
+    const lineItems = Array.isArray(payload.line_items) ? payload.line_items : [];
+    for (const item of lineItems) {
+      const properties = Array.isArray(item.properties)
+        ? item.properties
+        : Array.isArray(item.custom_attributes)
+        ? item.custom_attributes
+        : [];
+
+      const isCheckoutUpsell = properties.some(
+        (prop: {name?: string; key?: string; value?: string}) =>
+          (prop.name === "_upsell_source" || prop.key === "_upsell_source") &&
+          prop.value === "checkout_upsell"
+      );
+
+      if (isCheckoutUpsell) {
+        const itemPrice = parseFloat(item.price || "0.0") || 0.0;
+        const qty = item.quantity || 1;
+        const totalItemAmount = itemPrice * qty;
+        const itemVariantId = item.variant_id
+          ? `gid://shopify/ProductVariant/${item.variant_id}`
+          : null;
+
+        const existingUpsell = await db.earningsLog.findFirst({
+          where: {
+            shop,
+            orderId,
+            featureType: "CHECKOUT_UPSELL",
+            itemTitle: item.title || item.name || "Checkout Upsell Item",
+          },
+        });
+
+        if (!existingUpsell) {
+          await db.earningsLog.create({
+            data: {
+              shop,
+              orderId,
+              orderNumber,
+              customerId,
+              customerEmail,
+              featureType: "CHECKOUT_UPSELL",
+              itemTitle: item.title || item.name || "Checkout Upsell Item",
+              variantId: itemVariantId,
+              quantity: qty,
+              amount: totalItemAmount,
+              currency,
+              status: orderStatus,
+            },
+          });
+        }
       }
     }
   } catch (error) {

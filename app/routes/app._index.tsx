@@ -12,9 +12,9 @@ export const loader = async ({request}: LoaderFunctionArgs) => {
   await createMetafieldDefinitions(admin);
   const shop = session.shop;
   const today = new Date();
-  const sevenDaysAgo = new Date();
-
   today.setHours(0, 0, 0, 0);
+
+  const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const [totalClicks, todayClicks, recentClicks, recentEventTypes] =
@@ -205,7 +205,7 @@ export default function Index() {
           </s-table>
         ) : (
           <s-paragraph>
-            No thank-you page clicks have been tracked yet.
+            No checkout or thank-you page clicks have been tracked yet.
           </s-paragraph>
         )}
       </s-section>
@@ -220,7 +220,7 @@ export default function Index() {
         ) : (
           <s-paragraph>
             Activity will appear here after shoppers interact with your
-            thank-you page blocks.
+            checkout or thank-you page blocks.
           </s-paragraph>
         )}
       </s-section>

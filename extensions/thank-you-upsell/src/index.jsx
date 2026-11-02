@@ -32,16 +32,7 @@ function Extension() {
   const [blockEnabled, setBlockEnabled] = useState(false);
   const [hiddenByConditions, setHiddenByConditions] = useState(false);
 
-  // 10-minute timer for 1-Click Zero-Shipping Upsell
-  const [timeLeft, setTimeLeft] = useState(600);
 
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timeLeft]);
 
   const loadRecommendations = useCallback(async () => {
     try {
@@ -138,15 +129,9 @@ function Extension() {
           <s-box padding="base" border="base" borderRadius="base" background="subdued">
             <s-stack gap="small">
               <s-text type="strong">{heading}</s-text>
-              {timeLeft > 0 ? (
-                <s-text tone="success">
-                  ⚡ Add before your box is packed in {formatTime(timeLeft)} — 0 extra shipping fee!
-                </s-text>
-              ) : (
-                <s-text tone="critical">
-                  ⏰ Timer expired! Orders are being packed now.
-                </s-text>
-              )}
+              <s-text tone="success">
+                ⚡ Add to your package with 0 extra shipping fee!
+              </s-text>
             </s-stack>
           </s-box>
 
@@ -158,7 +143,6 @@ function Extension() {
               <UpsellProductCard
                 key={product.id}
                 product={product}
-                timerExpired={timeLeft <= 0}
                 orderConfirmation={orderConfirmation}
               />
             ))}
@@ -169,7 +153,7 @@ function Extension() {
   );
 }
 
-function UpsellProductCard({product, timerExpired, orderConfirmation}) {
+function UpsellProductCard({product, orderConfirmation}) {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const defaultVariantId =
     product.variantId ||
@@ -225,11 +209,7 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
       (variants[0] ? variants[0].id : '') ||
       product.id;
 
-    if (timerExpired) {
-      setStatusTone('critical');
-      setStatusMessage('Time limit expired for adding to this package.');
-      return;
-    }
+
 
     setAdding(true);
     setStatusMessage('');
@@ -321,7 +301,7 @@ function UpsellProductCard({product, timerExpired, orderConfirmation}) {
         {statusMessage && <s-text tone={statusTone}>{statusMessage}</s-text>}
 
         <s-button
-          disabled={adding || isCurrentVariantAdded || timerExpired}
+          disabled={adding || isCurrentVariantAdded}
           onClick={handleAddToOrder}
         >
           {isCurrentVariantAdded
@@ -393,11 +373,7 @@ async function fetchRecommendations(payload) {
   throw new Error(errors.join(' | ') || 'Could not load recommendations');
 }
 
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
+
 
 function shopDomain(shop) {
   return firstNormalized([

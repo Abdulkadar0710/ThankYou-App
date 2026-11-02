@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -33,13 +33,13 @@ model SubscriptionClick {
   eventType   String   @default("subscription")
   orderId     String?
   orderNumber String?
-  ctaText     String?  @db.Text
-  ctaLink     String?  @db.Text
+  ctaText     String?
+  ctaLink     String?
   itemId      String?
-  itemTitle   String?  @db.Text
-  itemUrl     String?  @db.Text
+  itemTitle   String?
+  itemUrl     String?
   source      String?
-  payload     String?  @db.Text
+  payload     String?
   createdAt   DateTime @default(now())
 
   @@index([shop, eventType, createdAt])
@@ -53,7 +53,7 @@ model ThankYouBlock {
   type      String
   name      String
   status    String   @default("draft")
-  config    String   @db.LongText
+  config    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -61,15 +61,15 @@ model ThankYouBlock {
   @@index([shop, updatedAt])
 }
 
-model UpsellConversion {
+model EarningsLog {
   id                 String   @id @default(cuid())
   shop               String
   orderId            String
   orderNumber        String?
   customerId         String?
   customerEmail      String?
-  featureType        String   // ONE_CLICK_UPSELL | DISCOUNT_CODE | SUBSCRIPTION | GIFT_WRAP | REFERRAL
-  itemTitle          String   @db.Text
+  featureType        String   // ONE_CLICK_UPSELL | CHECKOUT_UPSELL | DISCOUNT_CODE | SUBSCRIPTION | GIFT_WRAP | REFERRAL
+  itemTitle          String
   variantId          String?
   quantity           Int      @default(1)
   amount             Float    @default(0.0)
@@ -79,7 +79,7 @@ model UpsellConversion {
   isRepeatPurchase   Boolean  @default(false)
   firstOrderId       String?
   returnIntervalDays Int?
-  status             String   @default("COMPLETED")
+  status             String   @default("PAID")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -87,30 +87,6 @@ model UpsellConversion {
   @@index([shop, customerId])
   @@index([orderId])
   @@index([discountCode])
-}
-
-model CustomerRetentionLog {
-  id                   String    @id @default(cuid())
-  shop                 String
-  customerId           String
-  customerEmail        String?
-  initialOrderId       String
-  initialOrderDate     DateTime  @default(now())
-  lastPurchaseDate     DateTime  @default(now())
-  totalOrdersCount     Int       @default(1)
-  totalLifetimeValue   Float     @default(0.0)
-  discountCodeIssued   String?
-  discountCodeRedeemed Boolean   @default(false)
-  redeemedOrderId      String?
-  subscriptionStatus   String    @default("NONE") // NONE | ACTIVE | PAUSED | CANCELLED
-  churnedAt            DateTime?
-  churnReason          String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  @@unique([shop, customerId])
-  @@index([shop, subscriptionStatus])
-  @@index([shop, discountCodeIssued])
 }
 
 
@@ -135,7 +111,7 @@ model CustomerSurveyResponse {
   blockId     String?
   orderId     String?
   orderNumber String?
-  answers     String   @db.LongText
+  answers     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -143,4 +119,3 @@ model CustomerSurveyResponse {
   @@index([shop, blockId])
   @@index([orderId])
 }
-

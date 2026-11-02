@@ -1,6 +1,6 @@
 import '@shopify/ui-extensions/preact';
 import {render} from "preact";
-import {useEffect, useState} from "preact/hooks";
+import {useEffect, useRef, useState} from "preact/hooks";
 import {trackThankYouClick} from '../../shared/analytics';
 import {hasText, limitText} from '../../shared/text';
 import {fetchActiveBlock} from '../../shared/blocks';
@@ -22,6 +22,7 @@ function Extension() {
   const [heading, setHeading] = useState('');
   const [openIndex, setOpenIndex] = useState(null);
   const [loading, setLoading] = useState(true);
+  const openedFaqsRef = useRef(new Set());
 
   useEffect(() => {
     fetchActiveBlock('faq')
@@ -92,7 +93,8 @@ function Extension() {
       >
         <s-details
           onToggle={(e) => {
-            if (e.target.open) {
+            if (e.target.open && !openedFaqsRef.current.has(faq.q)) {
+              openedFaqsRef.current.add(faq.q);
               trackThankYouClick("faq_click", {
                 ctaText: faq.q,
                 itemTitle: faq.q,

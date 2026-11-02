@@ -19,7 +19,16 @@ export async function loader({request}) {
             nodes {
               id
               title
-              variants(first: 20) {
+              featuredImage {
+                url
+                altText
+              }
+              options {
+                id
+                name
+                values
+              }
+              variants(first: 50) {
                 nodes {
                   id
                   title
@@ -28,6 +37,10 @@ export async function loader({request}) {
                   image {
                     url
                     altText
+                  }
+                  selectedOptions {
+                    name
+                    value
                   }
                 }
               }
@@ -41,8 +54,14 @@ export async function loader({request}) {
     const product = json?.data?.products?.nodes?.[0];
 
     if (!product) {
-      return responseJson({success: false, variants: [], message: 'Gift wrap product not found'});
+      return responseJson({success: false, variants: [], options: [], message: 'Gift wrap product not found'});
     }
+
+    const options = (product.options || []).map((o) => ({
+      id: o.id,
+      name: o.name,
+      values: o.values || [],
+    }));
 
     const variants = (product.variants?.nodes || []).map((v) => ({
       id: v.id,
@@ -50,9 +69,19 @@ export async function loader({request}) {
       price: v.price,
       availableForSale: v.availableForSale,
       image: v.image?.url || null,
+      selectedOptions: (v.selectedOptions || []).map((so) => ({
+        name: so.name,
+        value: so.value,
+      })),
     }));
 
-    return responseJson({success: true, variants, productTitle: product.title});
+    return responseJson({
+      success: true,
+      variants,
+      options,
+      productTitle: product.title,
+      productImage: product.featuredImage?.url || null,
+    });
   } catch (err) {
     console.error('Gift wrap variants error:', err);
     return responseJson({success: false, variants: [], message: err?.message || 'Failed to load variants'});

@@ -53,7 +53,7 @@ export default function AnalyticsPage() {
 
   return (
     <s-page heading="Analytics">
-      <s-section heading="Thank-you page clicks">
+      <s-section heading="Checkout & Thank-you clicks">
         <s-stack direction="inline" gap="base">
           <s-box
             padding="base"
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
                       "-"}
                   </s-table-cell> */}
                   <s-table-cell>
-                    {click.itemId || click.itemTitle || click.ctaText || "-"}
+                    {click.itemTitle || click.ctaText || click.itemId || "-"}
                   </s-table-cell>
                   <s-table-cell>
                     {click.itemUrl || click.ctaLink ? (

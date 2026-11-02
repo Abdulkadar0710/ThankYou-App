@@ -184,6 +184,7 @@ export async function action({request}) {
             order {
               id
               name
+              displayFinancialStatus
               totalPriceSet {
                 shopMoney {
                   amount
@@ -236,8 +237,9 @@ export async function action({request}) {
       const unitPrice = shopifyUnitPrice > 0 ? shopifyUnitPrice : clientUnitPrice;
       const addedAmount = unitPrice * parsedQuantity;
       const itemTitle = addedLineItem?.title || body.itemTitle || body.title || '1-Click Upsell Item';
+      const orderFinancialStatus = updatedOrder?.displayFinancialStatus || 'PARTIALLY_PAID';
 
-      await prisma.upsellConversion.create({
+      await prisma.earningsLog.create({
         data: {
           shop,
           orderId: normalizedOrderId,
@@ -249,8 +251,7 @@ export async function action({request}) {
           amount: addedAmount,
           currency:
             updatedOrder?.totalPriceSet?.shopMoney?.currencyCode || 'USD',
-          shippingFeeSaved: 5.99,
-          status: 'COMPLETED',
+          status: orderFinancialStatus,
         },
       });
     } catch (dbErr) {

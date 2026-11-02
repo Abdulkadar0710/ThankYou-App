@@ -8,6 +8,7 @@ import {claimExtensionRender} from '../../shared/render-once';
 import {limitText, trimText} from '../../shared/text';
 import {apiUrls} from '../../shared/app-config';
 import {fetchWithTimeout} from '../../shared/fetch-with-timeout';
+import {trackClick} from '../../shared/analytics';
 
 const GIFT_WRAP_KEY = 'Gift wrap';
 const GIFT_MESSAGE_KEY = 'Gift message';
@@ -32,15 +33,30 @@ function Extension() {
 
   // Gift wrap variant picker state
   const [variants, setVariants] = useState([]);
+  const [productOptions, setProductOptions] = useState([]);
+  const [productImage, setProductImage] = useState(null);
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false); // true once gift wrap is in cart
+  const [removingFromCart, setRemovingFromCart] = useState(false);
   const [addedVariantTitle, setAddedVariantTitle] = useState('');
   const [cartError, setCartError] = useState('');
 
   // Live cart lines — used to find & remove the existing gift wrap line
   const cartLines = useSignalValue(api?.lines) || [];
+
+  const giftWrapVariantIds = new Set(variants.map((v) => v.id));
+  const existingGiftLine = cartLines.find((line) =>
+    giftWrapVariantIds.has(line?.merchandise?.id),
+  );
+  const inCartVariantId = existingGiftLine?.merchandise?.id;
+  const inCartVariant = variants.find((v) => v.id === inCartVariantId);
+  const isInCart = Boolean(existingGiftLine);
+  const isDifferentFromCart = Boolean(
+    isInCart && selectedVariantId && selectedVariantId !== inCartVariantId,
+  );
 
   const attributes = useSignalValue(api?.attributes) || [];
   const giftWrapValue = attributeValue(attributes, GIFT_WRAP_KEY) === 'Yes';
@@ -101,6 +117,16 @@ function Extension() {
           const data = await res.json().catch(() => null);
           if (data?.success && Array.isArray(data.variants)) {
             setVariants(data.variants);
+            if (Array.isArray(data.options)) {
+              setProductOptions(data.options);
+              const typeValues = data.options[0]?.values || [];
+              const colorValues = data.options[1]?.values || [];
+              if (typeValues.length > 0) setSelectedType(typeValues[0]);
+              if (colorValues.length > 0) setSelectedColor(colorValues[0]);
+            }
+            if (data.productImage) {
+              setProductImage(data.productImage);
+            }
             if (data.variants.length > 0) {
               setSelectedVariantId(data.variants[0].id);
             }
@@ -118,6 +144,15 @@ function Extension() {
 
     loadVariants();
   }, [giftWrapValue, variants.length]);
+
+  // Keep selectedVariantId synchronized when type or color changes
+  useEffect(() => {
+    if (!variants.length) return;
+    const match = findMatchingVariant(variants, selectedType, selectedColor, productOptions);
+    if (match) {
+      setSelectedVariantId(match.id);
+    }
+  }, [selectedType, selectedColor, variants, productOptions]);
 
   useEffect(() => {
     if (giftMessagePendingRef.current) return;
@@ -230,19 +265,36 @@ function Extension() {
         }
       }
 
+      // Check if gift wrap was already in the cart before this action
+      const isFirstTimeAdd = existingLines.length === 0;
+
       // Add the newly selected gift wrap variant
+      const picked = variants.find((v) => v.id === selectedVariantId);
+      const styleName = picked?.title || (selectedType && selectedColor ? `${selectedType} / ${selectedColor}` : 'Gift wrap');
+
       const result = await api.applyCartLinesChange({
         type: 'addCartLine',
         merchandiseId: selectedVariantId,
         quantity: 1,
+        attributes: [
+          { key: 'Gift wrap style', value: styleName },
+          { key: '_upsell_source', value: 'gift_wrap' },
+        ],
       });
 
       if (result?.type === 'error') {
         setCartError(result.message || 'Could not add gift wrap to cart.');
       } else {
-        const picked = variants.find((v) => v.id === selectedVariantId);
-        setAddedVariantTitle(picked?.title || 'Gift wrap');
-        setAddedToCart(true);
+        setAddedVariantTitle(styleName);
+        updateAttribute('Gift wrap style', styleName);
+        // Only track initial add to order (do not double count when swapping/updating style)
+        if (isFirstTimeAdd) {
+          trackClick('gift_wrap_click', {
+            ctaText: 'Add Gift Wrap',
+            itemId: selectedVariantId,
+            itemTitle: picked?.title ? `Gift Wrap: ${picked.title}` : 'Gift Wrap Option',
+          });
+        }
       }
     } catch (err) {
       setCartError(err?.message || 'Could not add gift wrap to cart.');
@@ -251,10 +303,32 @@ function Extension() {
     }
   };
 
-  // Reset picker so the user can choose a different variant
-  const handleChangeGiftWrap = () => {
-    setAddedToCart(false);
+  // Remove gift wrap from cart
+  const handleRemoveGiftWrap = async () => {
+    if (!api?.applyCartLinesChange) return;
+    setRemovingFromCart(true);
     setCartError('');
+
+    try {
+      const existingLines = cartLines.filter((line) =>
+        giftWrapVariantIds.has(line?.merchandise?.id),
+      );
+
+      for (const existingLine of existingLines) {
+        if (existingLine?.id) {
+          await api.applyCartLinesChange({
+            type: 'removeCartLine',
+            id: existingLine.id,
+            quantity: existingLine.quantity || 1,
+          });
+        }
+      }
+      setAddedVariantTitle('');
+    } catch (err) {
+      setCartError(err?.message || 'Could not remove gift wrap from cart.');
+    } finally {
+      setRemovingFromCart(false);
+    }
   };
 
   if (loading) {
@@ -272,6 +346,12 @@ function Extension() {
   const canUpdateAttributes =
     api?.instructions?.current?.attributes?.canUpdateAttributes !== false;
 
+  const activeVariant =
+    variants.find((v) => v.id === selectedVariantId) || variants[0];
+  const activePreviewImage =
+    activeVariant?.image ||
+    getStyleImage(selectedType, variants, productImage);
+
   return (
     <s-stack gap="base">
       <s-text type="strong">
@@ -284,10 +364,21 @@ function Extension() {
           disabled={saving || !canUpdateAttributes}
           label={limitText(trimText(config.giftWrapLabel) || 'Add gift wrap', 80)}
           onChange={(event) => {
+            const checked = checkedFromEvent(event);
             updateAttribute(
               GIFT_WRAP_KEY,
-              checkedFromEvent(event) ? 'Yes' : '',
+              checked ? 'Yes' : '',
             );
+            // If no variants exist, checking the box is the only action so track it
+            if (checked && variants.length === 0) {
+              trackClick('gift_wrap_click', {
+                ctaText: 'Add gift wrap',
+                itemTitle: 'Gift Wrap Option',
+              });
+            }
+            if (!checked) {
+              handleRemoveGiftWrap();
+            }
           }}
         />
       )}
@@ -299,6 +390,133 @@ function Extension() {
             <s-text>Loading gift wrap options…</s-text>
           ) : variants.length === 0 ? (
             <s-text tone="critical">No gift wrap styles available.</s-text>
+          ) : productOptions.length >= 2 ? (
+            <s-stack gap="base">
+              {/* Option 1: Wrapping Style (Paper, Ribbon, Bag, Box) */}
+              <s-stack gap="small-200">
+                <s-text type="strong">Choose Style:</s-text>
+                <s-grid gridTemplateColumns="1fr 1fr" gap="small">
+                  {(productOptions[0]?.values || []).map((type) => {
+                    const isSelected = selectedType === type;
+                    return (
+                      <s-button
+                        key={type}
+                        variant={isSelected ? 'primary' : 'secondary'}
+                        onClick={() => {
+                          setSelectedType(type);
+                          setAddedToCart(false);
+                        }}
+                      >
+                        {typeIcon(type)} {type}
+                      </s-button>
+                    );
+                  })}
+                </s-grid>
+              </s-stack>
+
+              {/* Option 2: Color Swatches (Sapphire Blue, Ignite Red, etc.) */}
+              <s-stack gap="small-200">
+                <s-text type="strong">Choose Color:</s-text>
+                <s-grid gridTemplateColumns="1fr 1fr" gap="small">
+                  {(productOptions[1]?.values || []).map((color) => {
+                    const isSelected = selectedColor === color;
+                    const swatch = getColorSwatch(color);
+                    return (
+                      <s-button
+                        key={color}
+                        variant={isSelected ? 'primary' : 'secondary'}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          setAddedToCart(false);
+                        }}
+                      >
+                        {swatch.emoji} {color}
+                      </s-button>
+                    );
+                  })}
+                </s-grid>
+              </s-stack>
+
+              {/* Live Preview Box with Image & Price */}
+              {/* Live Preview Box with Image & Price */}
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-grid
+                  gridTemplateColumns={activePreviewImage ? '72px 1fr' : '1fr'}
+                  gap="small"
+                  alignItems="center"
+                >
+                  {activePreviewImage ? (
+                    <s-image
+                      src={activePreviewImage}
+                      alt={activeVariant?.title || selectedType}
+                      aspectRatio="1/1"
+                      objectFit="cover"
+                      borderRadius="base"
+                    />
+                  ) : null}
+                  <s-stack gap="small-200">
+                    <s-text type="strong">
+                      {typeIcon(selectedType)} {selectedType} —{' '}
+                      {getColorSwatch(selectedColor).emoji} {selectedColor}
+                    </s-text>
+                    {activeVariant?.price && (
+                      <s-text>${activeVariant.price}</s-text>
+                    )}
+                  </s-stack>
+                </s-grid>
+              </s-box>
+
+              {cartError && <s-text tone="critical">{cartError}</s-text>}
+
+              {/* Action Buttons: Add, Update, or Remove */}
+              {isInCart && !isDifferentFromCart ? (
+                <s-stack gap="small">
+                  <s-text tone="success">
+                    🎁 {inCartVariant?.title || addedVariantTitle} added to your order!
+                  </s-text>
+                  <s-button
+                    variant="secondary"
+                    disabled={removingFromCart}
+                    onClick={handleRemoveGiftWrap}
+                  >
+                    {removingFromCart ? 'Removing…' : 'Remove Gift Wrap'}
+                  </s-button>
+                </s-stack>
+              ) : isInCart && isDifferentFromCart ? (
+                <s-stack gap="small">
+                  <s-text tone="subdued">
+                    In order: {inCartVariant?.title}
+                  </s-text>
+                  <s-grid gridTemplateColumns="1fr auto" gap="small">
+                    <s-button
+                      variant="primary"
+                      disabled={addingToCart || !selectedVariantId}
+                      onClick={handleAddGiftWrapToCart}
+                    >
+                      {addingToCart
+                        ? 'Updating…'
+                        : `Update to ${selectedType} (${activeVariant?.price ? `$${activeVariant.price}` : ''})`}
+                    </s-button>
+                    <s-button
+                      variant="secondary"
+                      disabled={removingFromCart}
+                      onClick={handleRemoveGiftWrap}
+                    >
+                      {removingFromCart ? 'Removing…' : 'Remove'}
+                    </s-button>
+                  </s-grid>
+                </s-stack>
+              ) : (
+                <s-button
+                  disabled={addingToCart || !selectedVariantId}
+                  onClick={handleAddGiftWrapToCart}
+                >
+                  {addingToCart
+                    ? 'Adding…'
+                    : `Add Gift Wrap (${selectedType || 'Option'})`}
+                </s-button>
+              )}
+            </s-stack>
           ) : (
             <s-stack gap="small">
               <s-text>Select a gift wrap style:</s-text>
@@ -320,13 +538,36 @@ function Extension() {
 
               {cartError && <s-text tone="critical">{cartError}</s-text>}
 
-              {addedToCart ? (
+              {isInCart && !isDifferentFromCart ? (
                 <s-stack gap="small">
-                  <s-text tone="success">🎁 {addedVariantTitle} added to your order!</s-text>
-                  <s-button onClick={handleChangeGiftWrap}>
-                    Change gift wrap
+                  <s-text tone="success">
+                    🎁 {inCartVariant?.title || addedVariantTitle} added to your order!
+                  </s-text>
+                  <s-button
+                    variant="secondary"
+                    disabled={removingFromCart}
+                    onClick={handleRemoveGiftWrap}
+                  >
+                    {removingFromCart ? 'Removing…' : 'Remove Gift Wrap'}
                   </s-button>
                 </s-stack>
+              ) : isInCart && isDifferentFromCart ? (
+                <s-grid gridTemplateColumns="1fr auto" gap="small">
+                  <s-button
+                    variant="primary"
+                    disabled={addingToCart || !selectedVariantId}
+                    onClick={handleAddGiftWrapToCart}
+                  >
+                    {addingToCart ? 'Updating…' : 'Update Gift Wrap'}
+                  </s-button>
+                  <s-button
+                    variant="secondary"
+                    disabled={removingFromCart}
+                    onClick={handleRemoveGiftWrap}
+                  >
+                    {removingFromCart ? 'Removing…' : 'Remove'}
+                  </s-button>
+                </s-grid>
               ) : (
                 <s-button
                   disabled={addingToCart || !selectedVariantId}
@@ -428,4 +669,94 @@ function shopDomain() {
     // ignore
   }
   return '';
+}
+
+function typeIcon(type) {
+  const t = (type || '').toLowerCase();
+  if (t.includes('paper')) return '📜';
+  if (t.includes('ribbon')) return '🎀';
+  if (t.includes('bag')) return '🛍️';
+  if (t.includes('box')) return '🎁';
+  return '📦';
+}
+
+function getColorSwatch(color) {
+  const c = (color || '').toLowerCase();
+  if (c.includes('sapphire') || c.includes('blue') || c.includes('navy')) {
+    return { emoji: '🔵', hex: '#1E40AF' };
+  }
+  if (c.includes('ignite') || c.includes('red') || c.includes('crimson') || c.includes('ruby')) {
+    return { emoji: '🔴', hex: '#DC2626' };
+  }
+  if (c.includes('honey') || c.includes('gold') || c.includes('yellow')) {
+    return { emoji: '🟡', hex: '#EAB308' };
+  }
+  if (c.includes('cosmic') || c.includes('black') || c.includes('dark')) {
+    return { emoji: '⚫', hex: '#111827' };
+  }
+  if (c.includes('silver') || c.includes('grey') || c.includes('gray')) {
+    return { emoji: '⚪', hex: '#9CA3AF' };
+  }
+  if (c.includes('green') || c.includes('emerald')) {
+    return { emoji: '🟢', hex: '#16A34A' };
+  }
+  if (c.includes('pink') || c.includes('rose')) {
+    return { emoji: '🌸', hex: '#EC4899' };
+  }
+  if (c.includes('purple') || c.includes('violet')) {
+    return { emoji: '🟣', hex: '#9333EA' };
+  }
+  if (c.includes('white')) {
+    return { emoji: '⚪', hex: '#FFFFFF' };
+  }
+  return { emoji: '🎨', hex: '#6B7280' };
+}
+
+function findMatchingVariant(variants, selectedType, selectedColor, options) {
+  if (!Array.isArray(variants) || !variants.length) return null;
+
+  if (Array.isArray(options) && options.length >= 2) {
+    const typeOptName = options[0].name;
+    const colorOptName = options[1].name;
+    const match = variants.find((v) => {
+      const typeMatch = v.selectedOptions?.some(
+        (so) => so.name === typeOptName && so.value === selectedType,
+      );
+      const colorMatch = v.selectedOptions?.some(
+        (so) => so.name === colorOptName && so.value === selectedColor,
+      );
+      return typeMatch && colorMatch;
+    });
+    if (match) return match;
+  }
+
+  if (selectedType && selectedColor) {
+    const match = variants.find((v) => {
+      const title = (v.title || '').toLowerCase();
+      return (
+        title.includes(selectedType.toLowerCase()) &&
+        title.includes(selectedColor.toLowerCase())
+      );
+    });
+    if (match) return match;
+  }
+
+  if (selectedType) {
+    const match = variants.find((v) =>
+      (v.title || '').toLowerCase().includes(selectedType.toLowerCase()),
+    );
+    if (match) return match;
+  }
+
+  return variants[0];
+}
+
+function getStyleImage(type, variants, productImage) {
+  if (!Array.isArray(variants)) return productImage || null;
+  const match = variants.find(
+    (v) =>
+      (v.title || '').toLowerCase().includes((type || '').toLowerCase()) &&
+      v.image,
+  );
+  return match?.image || productImage || null;
 }

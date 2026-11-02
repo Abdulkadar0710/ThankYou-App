@@ -55,7 +55,8 @@ const BUILD_APP_URL =
   '';
 
 const FALLBACK_APP_URLS = [
-  'https://thankyou-app-production-5ad4.up.railway.app',
+  'https://embassy-needed-merchandise-luther.trycloudflare.com'
+  // 'https://thankyou-app-production-5ad4.up.railway.app',
 ];
 
 
